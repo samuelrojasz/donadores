@@ -21,7 +21,7 @@ class cmembership_users_add extends cmembership_users {
 	var $PageID = 'add';
 
 	// Project ID
-	var $ProjectID = "{FC1F4E8D-CD1D-4597-961D-132102C33822}";
+	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Table name
 	var $TableName = 'membership_users';
@@ -676,8 +676,16 @@ class cmembership_users_add extends cmembership_users {
 		if ($Security->CanAdmin()) { // System admin
 		if (strval($this->groupID->CurrentValue) <> "") {
 			$sFilterWrk = "`userlevelid`" . ew_SearchString("=", $this->groupID->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
-		$sWhereWrk = "";
+		switch (@$gsLanguage) {
+			case "es":
+				$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
+				$sWhereWrk = "";
+				break;
+			default:
+				$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
+				$sWhereWrk = "";
+				break;
+		}
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
 		$this->Lookup_Selecting($this->groupID, $sWhereWrk); // Call Lookup selecting
 		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
@@ -840,8 +848,16 @@ class cmembership_users_add extends cmembership_users {
 			} else {
 				$sFilterWrk = "`userlevelid`" . ew_SearchString("=", $this->groupID->CurrentValue, EW_DATATYPE_NUMBER, "");
 			}
-			$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `userlevels`";
-			$sWhereWrk = "";
+			switch (@$gsLanguage) {
+				case "es":
+					$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `userlevels`";
+					$sWhereWrk = "";
+					break;
+				default:
+					$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `userlevels`";
+					$sWhereWrk = "";
+					break;
+			}
 			ew_AddFilter($sWhereWrk, $sFilterWrk);
 			$this->Lookup_Selecting($this->groupID, $sWhereWrk); // Call Lookup selecting
 			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
@@ -1380,8 +1396,16 @@ if (is_array($membership_users->groupID->EditValue)) {
 ?>
 </select>
 <?php
-$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
-$sWhereWrk = "";
+switch (@$gsLanguage) {
+	case "es":
+		$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
+		$sWhereWrk = "";
+		break;
+	default:
+		$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
+		$sWhereWrk = "";
+		break;
+}
 $membership_users->groupID->LookupFilters = array("s" => $sSqlWrk, "d" => "");
 $membership_users->groupID->LookupFilters += array("f0" => "`userlevelid` = {filter_value}", "t0" => "3", "fn0" => "");
 $sSqlWrk = "";

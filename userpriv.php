@@ -22,7 +22,7 @@ class cuserpriv extends cuserlevels {
 	var $PageID = 'userpriv';
 
 	// Project ID
-	var $ProjectID = "{FC1F4E8D-CD1D-4597-961D-132102C33822}";
+	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Page object name
 	var $PageObjName = 'userpriv';

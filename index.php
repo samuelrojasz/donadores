@@ -21,7 +21,7 @@ class cdefault {
 	var $PageID = 'default';
 
 	// Project ID
-	var $ProjectID = "{FC1F4E8D-CD1D-4597-961D-132102C33822}";
+	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Page object name
 	var $PageObjName = 'default';
@@ -258,12 +258,8 @@ class cdefault {
 		global $Security, $Language;
 		if (!$Security->IsLoggedIn()) $Security->AutoLogin();
 		$Security->LoadUserLevel(); // Load User Level
-		if ($Security->AllowList(CurrentProjectID() . 'dadores_de_sangre'))
-		$this->Page_Terminate("dadores_de_sangrelist.php"); // Exit and go to default page
-		if ($Security->AllowList(CurrentProjectID() . 'donacoes_sangre'))
-			$this->Page_Terminate("donacoes_sangrelist.php");
 		if ($Security->AllowList(CurrentProjectID() . 'hospitais'))
-			$this->Page_Terminate("hospitaislist.php");
+		$this->Page_Terminate("hospitaislist.php"); // Exit and go to default page
 		if ($Security->AllowList(CurrentProjectID() . 'membership_users'))
 			$this->Page_Terminate("membership_userslist.php");
 		if ($Security->IsLoggedIn()) {

@@ -21,7 +21,7 @@ class clogout {
 	var $PageID = 'logout';
 
 	// Project ID
-	var $ProjectID = "{FC1F4E8D-CD1D-4597-961D-132102C33822}";
+	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Page object name
 	var $PageObjName = 'logout';
@@ -272,6 +272,7 @@ class clogout {
 				setcookie(EW_PROJECT_NAME . '[Username]', ""); // Clear user name cookie
 			setcookie(EW_PROJECT_NAME . '[Password]', ""); // Clear password cookie
 			setcookie(EW_PROJECT_NAME . '[LastUrl]', ""); // Clear last URL
+			$this->WriteAuditTrailOnLogout($sUsername);
 
 			// Call User LoggedOut event
 			$this->User_LoggedOut($sUsername);
@@ -295,6 +296,14 @@ class clogout {
 			else
 				$this->Page_Terminate("login.php"); // Go to login page
 		}
+	}
+
+	//
+	// Write audit trail on logout
+	//
+	function WriteAuditTrailOnLogout($usr) {
+		global $Language;
+		ew_WriteAuditTrail("log", ew_StdCurrentDateTime(), ew_ScriptName(), $usr, $Language->Phrase("AuditTrailLogout"), ew_CurrentUserIP(), "", "", "", "");
 	}
 
 	// Page Load event

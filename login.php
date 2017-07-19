@@ -21,7 +21,7 @@ class clogin extends cmembership_users {
 	var $PageID = 'login';
 
 	// Project ID
-	var $ProjectID = "{FC1F4E8D-CD1D-4597-961D-132102C33822}";
+	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Page object name
 	var $PageObjName = 'login';
@@ -388,6 +388,7 @@ class clogin extends cmembership_users {
 			} else {
 				setcookie(EW_PROJECT_NAME . '[AutoLogin]', "", EW_COOKIE_EXPIRY_TIME); // Clear auto login cookie
 			}
+			$this->WriteAuditTrailOnLogin($this->Username);
 
 			// Call loggedin event
 			$this->User_LoggedIn($this->Username);
@@ -428,6 +429,14 @@ class clogin extends cmembership_users {
 			ew_AddMessage($gsFormError, $sFormCustomError);
 		}
 		return $ValidateForm;
+	}
+
+	//
+	// Write audit trail on login
+	//
+	function WriteAuditTrailOnLogin($usr) {
+		global $Language;
+		ew_WriteAuditTrail("log", ew_StdCurrentDateTime(), ew_ScriptName(), $usr, $Language->Phrase("AuditTrailLogin"), ew_CurrentUserIP(), "", "", "", "");
 	}
 
 	// Page Load event

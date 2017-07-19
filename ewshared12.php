@@ -201,6 +201,17 @@ class cLanguage {
 					$DEFAULT_LOCALE[$key] = in_array($key, $ar) ? $this->LocalePhrase($key) == "1" : $this->LocalePhrase($key);
 			}
 		}
+
+		/**
+		 * Time zone
+		 * Read http://www.php.net/date_default_timezone_set for details
+		 * and http://www.php.net/timezones for supported time zones
+		*/
+
+		// Set up time zone from language file for multi-language site
+		if ($this->LocalePhrase("time_zone") <> "") $DEFAULT_TIME_ZONE = $this->LocalePhrase("time_zone");
+		if (function_exists("date_default_timezone_set") && $DEFAULT_TIME_ZONE <> "")
+			date_default_timezone_set($DEFAULT_TIME_ZONE);
 	}
 
 	// Get language file name

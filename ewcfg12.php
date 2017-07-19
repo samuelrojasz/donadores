@@ -24,14 +24,14 @@ define("EW_DEFAULT_DATE_FORMAT", "yyyy/mm/dd", TRUE); // Default date format
 define("EW_DEFAULT_DATE_FORMAT_ID", "5", TRUE); // Default date format
 define("EW_DATE_SEPARATOR", "/", TRUE); // Date separator
 define("EW_UNFORMAT_YEAR", 50, TRUE); // Unformat year
-define("EW_PROJECT_NAME", "project1", TRUE); // Project name
+define("EW_PROJECT_NAME", "donadores", TRUE); // Project name
 define("EW_CONFIG_FILE_FOLDER", EW_PROJECT_NAME . "", TRUE); // Config file name
-define("EW_PROJECT_ID", "{FC1F4E8D-CD1D-4597-961D-132102C33822}", TRUE); // Project ID (GUID)
+define("EW_PROJECT_ID", "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}", TRUE); // Project ID (GUID)
 $EW_RELATED_PROJECT_ID = "";
 $EW_RELATED_LANGUAGE_FOLDER = "";
-define("EW_RANDOM_KEY", 'Y8Nl5dlY9nC1aJ9j', TRUE); // Random key for encryption
-define("EW_PROJECT_STYLESHEET_FILENAME", "phpcss/project1.css", TRUE); // Project stylesheet file name
-define("EW_CHARSET", "", TRUE); // Project charset
+define("EW_RANDOM_KEY", '02RKAx2yyg53xwvP', TRUE); // Random key for encryption
+define("EW_PROJECT_STYLESHEET_FILENAME", "phpcss/donadores.css", TRUE); // Project stylesheet file name
+define("EW_CHARSET", "utf-8", TRUE); // Project charset
 define("EW_EMAIL_CHARSET", EW_CHARSET, TRUE); // Email charset
 define("EW_EMAIL_KEYWORD_SEPARATOR", "", TRUE); // Email keyword separator
 $EW_COMPOSITE_KEY_SEPARATOR = ","; // Composite key separator
@@ -65,7 +65,7 @@ define("EW_CODEPAGE", 0, TRUE); // Code page
  * functions are enabled and your encoding is supported. See PHP manual for
  * details.
  */
-define("EW_ENCODING", "", TRUE); // Character encoding
+define("EW_ENCODING", "UTF-8", TRUE); // Character encoding
 define("EW_IS_DOUBLE_BYTE", in_array(EW_ENCODING, array("GBK", "BIG5", "SHIFT_JIS")), TRUE); // Double-byte character encoding
 define("EW_FILE_SYSTEM_ENCODING", "", TRUE); // File system encoding
 
@@ -85,7 +85,7 @@ define("EW_DB_QUOTE_END", "`", TRUE);
  * Note: Read http://dev.mysql.com/doc/refman/5.0/en/charset-connection.html
  * before using this setting.
  */
-define("EW_MYSQL_CHARSET", "", TRUE);
+define("EW_MYSQL_CHARSET", "utf8", TRUE);
 
 /**
  * Password (MD5 and case-sensitivity)
@@ -145,8 +145,9 @@ define("EW_SESSION_TEMP_IMAGES", EW_PROJECT_NAME . "_TempImages", TRUE); // Temp
 // Language settings
 define("EW_LANGUAGE_FOLDER", $EW_RELATIVE_PATH . "phplang/", TRUE);
 $EW_LANGUAGE_FILE = array();
-$EW_LANGUAGE_FILE[] = array("en", "", "english.xml");
-define("EW_LANGUAGE_DEFAULT_ID", "en", TRUE);
+$EW_LANGUAGE_FILE[] = array("pt", "", "Portuguese.xml");
+$EW_LANGUAGE_FILE[] = array("es", "", "spanish.xml");
+define("EW_LANGUAGE_DEFAULT_ID", "es", TRUE);
 define("EW_SESSION_LANGUAGE_ID", EW_PROJECT_NAME . "_LanguageId", TRUE); // Language ID
 
 // Page Token
@@ -205,10 +206,10 @@ define("EW_TABLE_EXPORT_RETURN_URL", "exportreturn", TRUE); // Export return URL
 define("EW_TABLE_GRID_ADD_ROW_COUNT", "gridaddcnt", TRUE); // Grid add row count
 
 // Audit Trail
-define("EW_AUDIT_TRAIL_TO_DATABASE", FALSE, TRUE); // Write audit trail to DB
+define("EW_AUDIT_TRAIL_TO_DATABASE", TRUE, TRUE); // Write audit trail to DB
 define("EW_AUDIT_TRAIL_DBID", "DB", TRUE); // Audit trail DBID
-define("EW_AUDIT_TRAIL_TABLE_NAME", "", TRUE); // Audit trail table name
-define("EW_AUDIT_TRAIL_TABLE_VAR", "", TRUE); // Audit trail table var
+define("EW_AUDIT_TRAIL_TABLE_NAME", "`membership_userrecords`", TRUE); // Audit trail table name
+define("EW_AUDIT_TRAIL_TABLE_VAR", "membership_userrecords", TRUE); // Audit trail table var
 define("EW_AUDIT_TRAIL_FIELD_NAME_DATETIME", "", TRUE); // Audit trail DateTime field name
 define("EW_AUDIT_TRAIL_FIELD_NAME_SCRIPT", "", TRUE); // Audit trail Script field name
 define("EW_AUDIT_TRAIL_FIELD_NAME_USER", "", TRUE); // Audit trail User field name
@@ -482,16 +483,6 @@ $DEFAULT_N_SIGN_POSN = &$DEFAULT_LOCALE["n_sign_posn"];
 // Cookies
 define("EW_COOKIE_EXPIRY_TIME", time() + 365*24*60*60, TRUE); // Change cookie expiry time here
 
-/**
- * Time zone
- * Read http://www.php.net/date_default_timezone_set for details
- * and http://www.php.net/timezones for supported time zones
- */
-
-// Set up time zone for non-multi-language site
-if (function_exists("date_default_timezone_set"))
-	date_default_timezone_set($DEFAULT_TIME_ZONE);
-
 // Client variables
 $EW_CLIENT_VAR = array();
 
@@ -576,5 +567,7 @@ define("EW_MENU_ROOT_GROUP_TITLE_AS_SUBMENU", FALSE, TRUE);
 define("EW_SHOW_RIGHT_MENU", FALSE, TRUE);
 ?>
 <?php
-define("EW_PDF_STYLESHEET_FILENAME", "", TRUE); // Export PDF CSS styles
+define("EW_PDF_STYLESHEET_FILENAME", "phpcss/ewpdf.css", TRUE); // export PDF CSS styles
+define("EW_PDF_MEMORY_LIMIT", "128M", TRUE); // Memory limit
+define("EW_PDF_TIME_LIMIT", 120, TRUE); // Time limit
 ?>

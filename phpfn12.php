@@ -51,7 +51,7 @@ function CurrentLanguageID() {
 function CurrentProjectID() {
 	if (isset($GLOBALS["Page"]))
 		return $GLOBALS["Page"]->ProjectID;
-	return "{FC1F4E8D-CD1D-4597-961D-132102C33822}";
+	return "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 }
 
 // Get current page object
@@ -698,12 +698,108 @@ class cExportXml extends cExportBase {
 // Class for export to PDF
 //
 class cExportPdf extends cExportBase {
-	var $PageOrientation = "portrait"; // To be setup after creating an instance
-	var $PageSize = "a4"; // To be setup after creating an instance
+
+	// Table header
+	function ExportTableHeader() {
+		$this->Text .= "<table class=\"ewTable\">\r\n";
+	}
+
+	// Export a value (caption, field value, or aggregate)
+	function ExportValueEx(&$fld, $val, $usestyle = TRUE) {
+		$wrkval = strval($val);
+		$wrkval = "<td" . (($usestyle && EW_EXPORT_CSS_STYLES) ? $fld->CellStyles() : "") . ">" . $wrkval . "</td>\r\n";
+		$this->Line .= $wrkval;
+		$this->Text .= $wrkval;
+	}
+
+	// Begin a row
+	function BeginExportRow($rowcnt = 0, $usestyle = TRUE) {
+		$this->FldCnt = 0;
+		if ($this->Horizontal) {
+			if ($rowcnt == -1)
+				$this->Table->CssClass = "ewTableFooter";
+			elseif ($rowcnt == 0)
+				$this->Table->CssClass = "ewTableHeader";
+			else
+				$this->Table->CssClass = (($rowcnt % 2) == 1) ? "ewTableRow" : "ewTableAltRow";
+			$this->Line = "<tr" . (($usestyle && EW_EXPORT_CSS_STYLES) ? $this->Table->RowStyles() : "") . ">";
+			$this->Text .= $this->Line;
+		}
+	}
+
+	// End a row
+	function EndExportRow() {
+		if ($this->Horizontal) {
+			$this->Line .= "</tr>";
+			$this->Text .= "</tr>";
+			$this->Header = $this->Line;
+		}
+	}
+
+	// Page break
+	function ExportPageBreak() {
+		if ($this->Horizontal) {
+			$this->Text .= "</table>\r\n"; // end current table
+			$this->Text .= "<p style=\"page-break-after:always;\">&nbsp;</p>\r\n"; // page break
+			$this->Text .= "<table class=\"ewTable ewTableBorder\">\r\n"; // new page header
+			$this->Text .= $this->Header;
+		}
+	}
+
+	// Export a field
+	function ExportField(&$fld) {
+		$ExportValue = $fld->ExportValue();
+		if ($fld->FldViewTag == "IMAGE") {
+			$ExportValue = ew_GetFileImgTag($fld, $fld->GetTempImage());
+		} elseif (is_array($fld->HrefValue2)) { // Export custom view tag
+			$ar = $fld->HrefValue2;
+			$fn = is_array($ar) ? @$ar["exportfn"] : ""; // Get export function name
+			if (is_callable($fn)) $ExportValue = $fn($ar);
+		} else {
+			$ExportValue = str_replace("<br>", "\r\n", $ExportValue);
+			$ExportValue = strip_tags($ExportValue);
+			$ExportValue = str_replace("\r\n", "<br>", $ExportValue);
+		}
+		if ($this->Horizontal) {
+			$this->ExportValueEx($fld, $ExportValue);
+		} else { // Vertical, export as a row
+			$this->FldCnt++;
+			$fld->CellCssClass = ($this->FldCnt % 2 == 1) ? "ewTableRow" : "ewTableAltRow";
+			$this->Text .= "<tr><td" . ((EW_EXPORT_CSS_STYLES) ? $fld->CellStyles() : "") . ">" . $fld->ExportCaption() . "</td>";
+			$this->Text .= "<td" . ((EW_EXPORT_CSS_STYLES) ? $fld->CellStyles() : "") . ">" .
+				$ExportValue . "</td></tr>";
+		}
+	}
+
+	// Add HTML tags
+	function ExportHeaderAndFooter() {
+		$header = "<html><head>\r\n";
+		$header .= $this->CharsetMetaTag();
+		if (EW_EXPORT_CSS_STYLES && EW_PDF_STYLESHEET_FILENAME <> "")
+			$header .= "<style type=\"text/css\">" . file_get_contents(EW_PDF_STYLESHEET_FILENAME) . "</style>\r\n";
+		$header .= "</" . "head>\r\n<body>\r\n";
+		$this->Text = $header . $this->Text . "</body></html>";
+	}
 
 	// Export
 	function Export() {
-		echo $this->Text;
+		global $gsExportFile;
+		include_once "dompdf061/dompdf_config.inc.php";
+		@ini_set("memory_limit", EW_PDF_MEMORY_LIMIT);
+		set_time_limit(EW_PDF_TIME_LIMIT);
+		$dompdf = new DOMPDF();
+		$dompdf->load_html($this->Text);
+		$dompdf->set_paper($this->Table->ExportPageSize, $this->Table->ExportPageOrientation);
+		$dompdf->render();
+		if (!EW_DEBUG_ENABLED && ob_get_length())
+			ob_end_clean();
+		$dompdf->stream($gsExportFile . ".pdf", array("Attachment" => 1)); // 0 to open in browser, 1 to download
+		ew_DeleteTmpImages();
+	}
+
+	// Destructor
+	function __destruct() {
+		ew_DeleteTmpImages();
 	}
 }
 
@@ -3535,6 +3631,8 @@ class cAdvancedSecurity {
 			$enc = !empty($_SESSION[EW_PROJECT_NAME . "_Encrypted"]);
 			$AutoLogin = $this->ValidateUser($usr, $pwd, TRUE, $enc);
 		}
+		if ($AutoLogin)
+			ew_WriteAuditTrail("log", ew_StdCurrentDateTime(), ew_ScriptName(), $usr, $GLOBALS["Language"]->Phrase("AuditTrailAutoLogin"), ew_CurrentUserIP(), "", "", "", "");
 		return $AutoLogin;
 	}
 

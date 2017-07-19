@@ -40,7 +40,7 @@ class cdadores_de_sangre_db extends cDbHelper {
 	 * Note: Read http://dev.mysql.com/doc/refman/5.0/en/charset-connection.html
 	 * before using this setting.
 	 */
-	var $MySqlCharset = "";
+	var $MySqlCharset = "utf8";
 
 	// Connect to database
 	function &Connect($info = NULL) {

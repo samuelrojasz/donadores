@@ -416,7 +416,7 @@
 		<phrase id="and" value="y"/>
 		<phrase id="or" value="o"/>
 	</global>
-	<project><phrase id="footertext" value="&amp;copy;2017 e.World Technology Ltd. All rights reserved."/>
+	<project><phrase id="footertext" value="&amp;copy;2017 gerd Ltd. All rights reserved."/>
 <menu id="1"><phrase id="menutext" value="dadores de sangre"/>
 </menu>
 <menu id="2"><phrase id="menutext" value="donacoes sangre"/>

@@ -352,6 +352,11 @@ class chospitais_list extends chospitais {
 			$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
 			$this->Page_Terminate(ew_GetUrl("index.php"));
 		}
+		if ($Security->IsLoggedIn()) {
+			$Security->UserID_Loading();
+			$Security->LoadUserID();
+			$Security->UserID_Loaded();
+		}
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
 
 		// Get grid add count

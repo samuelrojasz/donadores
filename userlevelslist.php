@@ -5,6 +5,7 @@ ob_start(); // Turn on output buffering
 <?php include_once "ewcfg12.php" ?>
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql12.php") ?>
 <?php include_once "phpfn12.php" ?>
+<?php include_once "userlevelsinfo.php" ?>
 <?php include_once "membership_usersinfo.php" ?>
 <?php include_once "userfn12.php" ?>
 <?php
@@ -13,9 +14,9 @@ ob_start(); // Turn on output buffering
 // Page class
 //
 
-$membership_users_list = NULL; // Initialize page object first
+$userlevels_list = NULL; // Initialize page object first
 
-class cmembership_users_list extends cmembership_users {
+class cuserlevels_list extends cuserlevels {
 
 	// Page ID
 	var $PageID = 'list';
@@ -24,13 +25,13 @@ class cmembership_users_list extends cmembership_users {
 	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Table name
-	var $TableName = 'membership_users';
+	var $TableName = 'userlevels';
 
 	// Page object name
-	var $PageObjName = 'membership_users_list';
+	var $PageObjName = 'userlevels_list';
 
 	// Grid form hidden field names
-	var $FormName = 'fmembership_userslist';
+	var $FormName = 'fuserlevelslist';
 	var $FormActionName = 'k_action';
 	var $FormKeyName = 'k_key';
 	var $FormOldKeyName = 'k_oldkey';
@@ -261,10 +262,10 @@ class cmembership_users_list extends cmembership_users {
 		// Parent constuctor
 		parent::__construct();
 
-		// Table object (membership_users)
-		if (!isset($GLOBALS["membership_users"]) || get_class($GLOBALS["membership_users"]) == "cmembership_users") {
-			$GLOBALS["membership_users"] = &$this;
-			$GLOBALS["Table"] = &$GLOBALS["membership_users"];
+		// Table object (userlevels)
+		if (!isset($GLOBALS["userlevels"]) || get_class($GLOBALS["userlevels"]) == "cuserlevels") {
+			$GLOBALS["userlevels"] = &$this;
+			$GLOBALS["Table"] = &$GLOBALS["userlevels"];
 		}
 
 		// Initialize URLs
@@ -275,12 +276,15 @@ class cmembership_users_list extends cmembership_users {
 		$this->ExportXmlUrl = $this->PageUrl() . "export=xml";
 		$this->ExportCsvUrl = $this->PageUrl() . "export=csv";
 		$this->ExportPdfUrl = $this->PageUrl() . "export=pdf";
-		$this->AddUrl = "membership_usersadd.php";
+		$this->AddUrl = "userlevelsadd.php";
 		$this->InlineAddUrl = $this->PageUrl() . "a=add";
 		$this->GridAddUrl = $this->PageUrl() . "a=gridadd";
 		$this->GridEditUrl = $this->PageUrl() . "a=gridedit";
-		$this->MultiDeleteUrl = "membership_usersdelete.php";
-		$this->MultiUpdateUrl = "membership_usersupdate.php";
+		$this->MultiDeleteUrl = "userlevelsdelete.php";
+		$this->MultiUpdateUrl = "userlevelsupdate.php";
+
+		// Table object (membership_users)
+		if (!isset($GLOBALS['membership_users'])) $GLOBALS['membership_users'] = new cmembership_users();
 
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
@@ -288,7 +292,7 @@ class cmembership_users_list extends cmembership_users {
 
 		// Table name (for backward compatibility)
 		if (!defined("EW_TABLE_NAME"))
-			define("EW_TABLE_NAME", 'membership_users', TRUE);
+			define("EW_TABLE_NAME", 'userlevels', TRUE);
 
 		// Start timer
 		if (!isset($GLOBALS["gTimer"])) $GLOBALS["gTimer"] = new cTimer();
@@ -325,7 +329,7 @@ class cmembership_users_list extends cmembership_users {
 		// Filter options
 		$this->FilterOptions = new cListOptions();
 		$this->FilterOptions->Tag = "div";
-		$this->FilterOptions->TagClassName = "ewFilterOption fmembership_userslistsrch";
+		$this->FilterOptions->TagClassName = "ewFilterOption fuserlevelslistsrch";
 
 		// List actions
 		$this->ListActions = new cListActions();
@@ -343,19 +347,14 @@ class cmembership_users_list extends cmembership_users {
 		if ($Security->IsLoggedIn()) $Security->TablePermission_Loading();
 		$Security->LoadCurrentUserLevel($this->ProjectID . $this->TableName);
 		if ($Security->IsLoggedIn()) $Security->TablePermission_Loaded();
-		if (!$Security->CanList()) {
+		if (!$Security->CanAdmin()) {
 			$Security->SaveLastUrl();
-			$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
-			$this->Page_Terminate(ew_GetUrl("index.php"));
+			$this->Page_Terminate(ew_GetUrl("login.php"));
 		}
 		if ($Security->IsLoggedIn()) {
 			$Security->UserID_Loading();
 			$Security->LoadUserID();
 			$Security->UserID_Loaded();
-			if (strval($Security->CurrentUserID()) == "") {
-				$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
-				$this->Page_Terminate();
-			}
 		}
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
 
@@ -426,13 +425,13 @@ class cmembership_users_list extends cmembership_users {
 		Page_Unloaded();
 
 		// Export
-		global $EW_EXPORT, $membership_users;
+		global $EW_EXPORT, $userlevels;
 		if ($this->CustomExport <> "" && $this->CustomExport == $this->Export && array_key_exists($this->CustomExport, $EW_EXPORT)) {
 				$sContent = ob_get_contents();
 			if ($gsExportFile == "") $gsExportFile = $this->TableVar;
 			$class = $EW_EXPORT[$this->CustomExport];
 			if (class_exists($class)) {
-				$doc = new $class($membership_users);
+				$doc = new $class($userlevels);
 				$doc->Text = $sContent;
 				if ($this->Export == "email")
 					echo $this->ExportEmail($doc->Text);
@@ -664,7 +663,9 @@ class cmembership_users_list extends cmembership_users {
 	function SetupKeyValues($key) {
 		$arrKeyFlds = explode($GLOBALS["EW_COMPOSITE_KEY_SEPARATOR"], $key);
 		if (count($arrKeyFlds) >= 1) {
-			$this->memberID->setFormValue($arrKeyFlds[0]);
+			$this->userlevelid->setFormValue($arrKeyFlds[0]);
+			if (!is_numeric($this->userlevelid->FormValue))
+				return FALSE;
 		}
 		return TRUE;
 	}
@@ -674,20 +675,8 @@ class cmembership_users_list extends cmembership_users {
 
 		// Initialize
 		$sFilterList = "";
-		$sFilterList = ew_Concat($sFilterList, $this->memberID->AdvancedSearch->ToJSON(), ","); // Field memberID
-		$sFilterList = ew_Concat($sFilterList, $this->passMD5->AdvancedSearch->ToJSON(), ","); // Field passMD5
-		$sFilterList = ew_Concat($sFilterList, $this->_email->AdvancedSearch->ToJSON(), ","); // Field email
-		$sFilterList = ew_Concat($sFilterList, $this->signupDate->AdvancedSearch->ToJSON(), ","); // Field signupDate
-		$sFilterList = ew_Concat($sFilterList, $this->groupID->AdvancedSearch->ToJSON(), ","); // Field groupID
-		$sFilterList = ew_Concat($sFilterList, $this->isBanned->AdvancedSearch->ToJSON(), ","); // Field isBanned
-		$sFilterList = ew_Concat($sFilterList, $this->isApproved->AdvancedSearch->ToJSON(), ","); // Field isApproved
-		$sFilterList = ew_Concat($sFilterList, $this->custom1->AdvancedSearch->ToJSON(), ","); // Field custom1
-		$sFilterList = ew_Concat($sFilterList, $this->custom2->AdvancedSearch->ToJSON(), ","); // Field custom2
-		$sFilterList = ew_Concat($sFilterList, $this->custom3->AdvancedSearch->ToJSON(), ","); // Field custom3
-		$sFilterList = ew_Concat($sFilterList, $this->custom4->AdvancedSearch->ToJSON(), ","); // Field custom4
-		$sFilterList = ew_Concat($sFilterList, $this->comments->AdvancedSearch->ToJSON(), ","); // Field comments
-		$sFilterList = ew_Concat($sFilterList, $this->pass_reset_key->AdvancedSearch->ToJSON(), ","); // Field pass_reset_key
-		$sFilterList = ew_Concat($sFilterList, $this->pass_reset_expiry->AdvancedSearch->ToJSON(), ","); // Field pass_reset_expiry
+		$sFilterList = ew_Concat($sFilterList, $this->userlevelid->AdvancedSearch->ToJSON(), ","); // Field userlevelid
+		$sFilterList = ew_Concat($sFilterList, $this->userlevelname->AdvancedSearch->ToJSON(), ","); // Field userlevelname
 		if ($this->BasicSearch->Keyword <> "") {
 			$sWrk = "\"" . EW_TABLE_BASIC_SEARCH . "\":\"" . ew_JsEncode2($this->BasicSearch->Keyword) . "\",\"" . EW_TABLE_BASIC_SEARCH_TYPE . "\":\"" . ew_JsEncode2($this->BasicSearch->Type) . "\"";
 			$sFilterList = ew_Concat($sFilterList, $sWrk, ",");
@@ -706,117 +695,21 @@ class cmembership_users_list extends cmembership_users {
 		$filter = json_decode(ew_StripSlashes(@$_POST["filter"]), TRUE);
 		$this->Command = "search";
 
-		// Field memberID
-		$this->memberID->AdvancedSearch->SearchValue = @$filter["x_memberID"];
-		$this->memberID->AdvancedSearch->SearchOperator = @$filter["z_memberID"];
-		$this->memberID->AdvancedSearch->SearchCondition = @$filter["v_memberID"];
-		$this->memberID->AdvancedSearch->SearchValue2 = @$filter["y_memberID"];
-		$this->memberID->AdvancedSearch->SearchOperator2 = @$filter["w_memberID"];
-		$this->memberID->AdvancedSearch->Save();
+		// Field userlevelid
+		$this->userlevelid->AdvancedSearch->SearchValue = @$filter["x_userlevelid"];
+		$this->userlevelid->AdvancedSearch->SearchOperator = @$filter["z_userlevelid"];
+		$this->userlevelid->AdvancedSearch->SearchCondition = @$filter["v_userlevelid"];
+		$this->userlevelid->AdvancedSearch->SearchValue2 = @$filter["y_userlevelid"];
+		$this->userlevelid->AdvancedSearch->SearchOperator2 = @$filter["w_userlevelid"];
+		$this->userlevelid->AdvancedSearch->Save();
 
-		// Field passMD5
-		$this->passMD5->AdvancedSearch->SearchValue = @$filter["x_passMD5"];
-		$this->passMD5->AdvancedSearch->SearchOperator = @$filter["z_passMD5"];
-		$this->passMD5->AdvancedSearch->SearchCondition = @$filter["v_passMD5"];
-		$this->passMD5->AdvancedSearch->SearchValue2 = @$filter["y_passMD5"];
-		$this->passMD5->AdvancedSearch->SearchOperator2 = @$filter["w_passMD5"];
-		$this->passMD5->AdvancedSearch->Save();
-
-		// Field email
-		$this->_email->AdvancedSearch->SearchValue = @$filter["x__email"];
-		$this->_email->AdvancedSearch->SearchOperator = @$filter["z__email"];
-		$this->_email->AdvancedSearch->SearchCondition = @$filter["v__email"];
-		$this->_email->AdvancedSearch->SearchValue2 = @$filter["y__email"];
-		$this->_email->AdvancedSearch->SearchOperator2 = @$filter["w__email"];
-		$this->_email->AdvancedSearch->Save();
-
-		// Field signupDate
-		$this->signupDate->AdvancedSearch->SearchValue = @$filter["x_signupDate"];
-		$this->signupDate->AdvancedSearch->SearchOperator = @$filter["z_signupDate"];
-		$this->signupDate->AdvancedSearch->SearchCondition = @$filter["v_signupDate"];
-		$this->signupDate->AdvancedSearch->SearchValue2 = @$filter["y_signupDate"];
-		$this->signupDate->AdvancedSearch->SearchOperator2 = @$filter["w_signupDate"];
-		$this->signupDate->AdvancedSearch->Save();
-
-		// Field groupID
-		$this->groupID->AdvancedSearch->SearchValue = @$filter["x_groupID"];
-		$this->groupID->AdvancedSearch->SearchOperator = @$filter["z_groupID"];
-		$this->groupID->AdvancedSearch->SearchCondition = @$filter["v_groupID"];
-		$this->groupID->AdvancedSearch->SearchValue2 = @$filter["y_groupID"];
-		$this->groupID->AdvancedSearch->SearchOperator2 = @$filter["w_groupID"];
-		$this->groupID->AdvancedSearch->Save();
-
-		// Field isBanned
-		$this->isBanned->AdvancedSearch->SearchValue = @$filter["x_isBanned"];
-		$this->isBanned->AdvancedSearch->SearchOperator = @$filter["z_isBanned"];
-		$this->isBanned->AdvancedSearch->SearchCondition = @$filter["v_isBanned"];
-		$this->isBanned->AdvancedSearch->SearchValue2 = @$filter["y_isBanned"];
-		$this->isBanned->AdvancedSearch->SearchOperator2 = @$filter["w_isBanned"];
-		$this->isBanned->AdvancedSearch->Save();
-
-		// Field isApproved
-		$this->isApproved->AdvancedSearch->SearchValue = @$filter["x_isApproved"];
-		$this->isApproved->AdvancedSearch->SearchOperator = @$filter["z_isApproved"];
-		$this->isApproved->AdvancedSearch->SearchCondition = @$filter["v_isApproved"];
-		$this->isApproved->AdvancedSearch->SearchValue2 = @$filter["y_isApproved"];
-		$this->isApproved->AdvancedSearch->SearchOperator2 = @$filter["w_isApproved"];
-		$this->isApproved->AdvancedSearch->Save();
-
-		// Field custom1
-		$this->custom1->AdvancedSearch->SearchValue = @$filter["x_custom1"];
-		$this->custom1->AdvancedSearch->SearchOperator = @$filter["z_custom1"];
-		$this->custom1->AdvancedSearch->SearchCondition = @$filter["v_custom1"];
-		$this->custom1->AdvancedSearch->SearchValue2 = @$filter["y_custom1"];
-		$this->custom1->AdvancedSearch->SearchOperator2 = @$filter["w_custom1"];
-		$this->custom1->AdvancedSearch->Save();
-
-		// Field custom2
-		$this->custom2->AdvancedSearch->SearchValue = @$filter["x_custom2"];
-		$this->custom2->AdvancedSearch->SearchOperator = @$filter["z_custom2"];
-		$this->custom2->AdvancedSearch->SearchCondition = @$filter["v_custom2"];
-		$this->custom2->AdvancedSearch->SearchValue2 = @$filter["y_custom2"];
-		$this->custom2->AdvancedSearch->SearchOperator2 = @$filter["w_custom2"];
-		$this->custom2->AdvancedSearch->Save();
-
-		// Field custom3
-		$this->custom3->AdvancedSearch->SearchValue = @$filter["x_custom3"];
-		$this->custom3->AdvancedSearch->SearchOperator = @$filter["z_custom3"];
-		$this->custom3->AdvancedSearch->SearchCondition = @$filter["v_custom3"];
-		$this->custom3->AdvancedSearch->SearchValue2 = @$filter["y_custom3"];
-		$this->custom3->AdvancedSearch->SearchOperator2 = @$filter["w_custom3"];
-		$this->custom3->AdvancedSearch->Save();
-
-		// Field custom4
-		$this->custom4->AdvancedSearch->SearchValue = @$filter["x_custom4"];
-		$this->custom4->AdvancedSearch->SearchOperator = @$filter["z_custom4"];
-		$this->custom4->AdvancedSearch->SearchCondition = @$filter["v_custom4"];
-		$this->custom4->AdvancedSearch->SearchValue2 = @$filter["y_custom4"];
-		$this->custom4->AdvancedSearch->SearchOperator2 = @$filter["w_custom4"];
-		$this->custom4->AdvancedSearch->Save();
-
-		// Field comments
-		$this->comments->AdvancedSearch->SearchValue = @$filter["x_comments"];
-		$this->comments->AdvancedSearch->SearchOperator = @$filter["z_comments"];
-		$this->comments->AdvancedSearch->SearchCondition = @$filter["v_comments"];
-		$this->comments->AdvancedSearch->SearchValue2 = @$filter["y_comments"];
-		$this->comments->AdvancedSearch->SearchOperator2 = @$filter["w_comments"];
-		$this->comments->AdvancedSearch->Save();
-
-		// Field pass_reset_key
-		$this->pass_reset_key->AdvancedSearch->SearchValue = @$filter["x_pass_reset_key"];
-		$this->pass_reset_key->AdvancedSearch->SearchOperator = @$filter["z_pass_reset_key"];
-		$this->pass_reset_key->AdvancedSearch->SearchCondition = @$filter["v_pass_reset_key"];
-		$this->pass_reset_key->AdvancedSearch->SearchValue2 = @$filter["y_pass_reset_key"];
-		$this->pass_reset_key->AdvancedSearch->SearchOperator2 = @$filter["w_pass_reset_key"];
-		$this->pass_reset_key->AdvancedSearch->Save();
-
-		// Field pass_reset_expiry
-		$this->pass_reset_expiry->AdvancedSearch->SearchValue = @$filter["x_pass_reset_expiry"];
-		$this->pass_reset_expiry->AdvancedSearch->SearchOperator = @$filter["z_pass_reset_expiry"];
-		$this->pass_reset_expiry->AdvancedSearch->SearchCondition = @$filter["v_pass_reset_expiry"];
-		$this->pass_reset_expiry->AdvancedSearch->SearchValue2 = @$filter["y_pass_reset_expiry"];
-		$this->pass_reset_expiry->AdvancedSearch->SearchOperator2 = @$filter["w_pass_reset_expiry"];
-		$this->pass_reset_expiry->AdvancedSearch->Save();
+		// Field userlevelname
+		$this->userlevelname->AdvancedSearch->SearchValue = @$filter["x_userlevelname"];
+		$this->userlevelname->AdvancedSearch->SearchOperator = @$filter["z_userlevelname"];
+		$this->userlevelname->AdvancedSearch->SearchCondition = @$filter["v_userlevelname"];
+		$this->userlevelname->AdvancedSearch->SearchValue2 = @$filter["y_userlevelname"];
+		$this->userlevelname->AdvancedSearch->SearchOperator2 = @$filter["w_userlevelname"];
+		$this->userlevelname->AdvancedSearch->Save();
 		$this->BasicSearch->setKeyword(@$filter[EW_TABLE_BASIC_SEARCH]);
 		$this->BasicSearch->setType(@$filter[EW_TABLE_BASIC_SEARCH_TYPE]);
 	}
@@ -824,15 +717,7 @@ class cmembership_users_list extends cmembership_users {
 	// Return basic search SQL
 	function BasicSearchSQL($arKeywords, $type) {
 		$sWhere = "";
-		$this->BuildBasicSearchSQL($sWhere, $this->memberID, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->passMD5, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->_email, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->custom1, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->custom2, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->custom3, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->custom4, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->comments, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->pass_reset_key, $arKeywords, $type);
+		$this->BuildBasicSearchSQL($sWhere, $this->userlevelname, $arKeywords, $type);
 		return $sWhere;
 	}
 
@@ -997,15 +882,8 @@ class cmembership_users_list extends cmembership_users {
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->memberID); // memberID
-			$this->UpdateSort($this->passMD5); // passMD5
-			$this->UpdateSort($this->_email); // email
-			$this->UpdateSort($this->signupDate); // signupDate
-			$this->UpdateSort($this->groupID); // groupID
-			$this->UpdateSort($this->isBanned); // isBanned
-			$this->UpdateSort($this->isApproved); // isApproved
-			$this->UpdateSort($this->pass_reset_key); // pass_reset_key
-			$this->UpdateSort($this->pass_reset_expiry); // pass_reset_expiry
+			$this->UpdateSort($this->userlevelid); // userlevelid
+			$this->UpdateSort($this->userlevelname); // userlevelname
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1038,15 +916,8 @@ class cmembership_users_list extends cmembership_users {
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->memberID->setSort("");
-				$this->passMD5->setSort("");
-				$this->_email->setSort("");
-				$this->signupDate->setSort("");
-				$this->groupID->setSort("");
-				$this->isBanned->setSort("");
-				$this->isApproved->setSort("");
-				$this->pass_reset_key->setSort("");
-				$this->pass_reset_expiry->setSort("");
+				$this->userlevelid->setSort("");
+				$this->userlevelname->setSort("");
 			}
 
 			// Reset start position
@@ -1089,6 +960,13 @@ class cmembership_users_list extends cmembership_users {
 		$item->Visible = $Security->CanDelete();
 		$item->OnLeft = FALSE;
 
+		// "userpermission"
+		$item = &$this->ListOptions->Add("userpermission");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = $Security->IsAdmin();
+		$item->OnLeft = FALSE;
+		$item->ButtonGroupName = "userpermission"; // Use own group
+
 		// List actions
 		$item = &$this->ListOptions->Add("listactions");
 		$item->CssStyle = "white-space: nowrap;";
@@ -1128,14 +1006,14 @@ class cmembership_users_list extends cmembership_users {
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
-		if ($Security->CanView() && $this->ShowOptionLink('view'))
+		if ($Security->CanView())
 			$oListOpt->Body = "<a class=\"ewRowLink ewView\" title=\"" . ew_HtmlTitle($Language->Phrase("ViewLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("ViewLink")) . "\" href=\"" . ew_HtmlEncode($this->ViewUrl) . "\">" . $Language->Phrase("ViewLink") . "</a>";
 		else
 			$oListOpt->Body = "";
 
 		// "edit"
 		$oListOpt = &$this->ListOptions->Items["edit"];
-		if ($Security->CanEdit() && $this->ShowOptionLink('edit')) {
+		if ($Security->CanEdit()) {
 			$oListOpt->Body = "<a class=\"ewRowLink ewEdit\" title=\"" . ew_HtmlTitle($Language->Phrase("EditLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("EditLink")) . "\" href=\"" . ew_HtmlEncode($this->EditUrl) . "\">" . $Language->Phrase("EditLink") . "</a>";
 		} else {
 			$oListOpt->Body = "";
@@ -1143,7 +1021,7 @@ class cmembership_users_list extends cmembership_users {
 
 		// "copy"
 		$oListOpt = &$this->ListOptions->Items["copy"];
-		if ($Security->CanAdd() && $this->ShowOptionLink('add')) {
+		if ($Security->CanAdd()) {
 			$oListOpt->Body = "<a class=\"ewRowLink ewCopy\" title=\"" . ew_HtmlTitle($Language->Phrase("CopyLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("CopyLink")) . "\" href=\"" . ew_HtmlEncode($this->CopyUrl) . "\">" . $Language->Phrase("CopyLink") . "</a>";
 		} else {
 			$oListOpt->Body = "";
@@ -1151,7 +1029,7 @@ class cmembership_users_list extends cmembership_users {
 
 		// "delete"
 		$oListOpt = &$this->ListOptions->Items["delete"];
-		if ($Security->CanDelete() && $this->ShowOptionLink('delete'))
+		if ($Security->CanDelete())
 			$oListOpt->Body = "<a class=\"ewRowLink ewDelete\"" . "" . " title=\"" . ew_HtmlTitle($Language->Phrase("DeleteLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("DeleteLink")) . "\" href=\"" . ew_HtmlEncode($this->DeleteUrl) . "\">" . $Language->Phrase("DeleteLink") . "</a>";
 		else
 			$oListOpt->Body = "";
@@ -1185,9 +1063,17 @@ class cmembership_users_list extends cmembership_users {
 			}
 		}
 
+		// "userpermission"
+		$oListOpt = &$this->ListOptions->Items["userpermission"];
+		if ($this->userlevelid->CurrentValue < 0 && $this->userlevelid->CurrentValue <> -2) {
+			$oListOpt->Body = "-";
+		} else {
+			$oListOpt->Body = "<a class=\"ewRowLink ewUserPermission\" title=\"" . ew_HtmlTitle($Language->Phrase("Permission")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("Permission")) . "\" href=\"" . ew_HtmlEncode("userpriv.php?userlevelid=" . $this->userlevelid->CurrentValue) . "\">" . $Language->Phrase("Permission") . "</a>";
+		}
+
 		// "checkbox"
 		$oListOpt = &$this->ListOptions->Items["checkbox"];
-		$oListOpt->Body = "<input type=\"checkbox\" name=\"key_m[]\" value=\"" . ew_HtmlEncode($this->memberID->CurrentValue) . "\" onclick='ew_ClickMultiCheckbox(event);'>";
+		$oListOpt->Body = "<input type=\"checkbox\" name=\"key_m[]\" value=\"" . ew_HtmlEncode($this->userlevelid->CurrentValue) . "\" onclick='ew_ClickMultiCheckbox(event);'>";
 		$this->RenderListOptionsExt();
 
 		// Call ListOptions_Rendered event
@@ -1222,10 +1108,10 @@ class cmembership_users_list extends cmembership_users {
 
 		// Filter button
 		$item = &$this->FilterOptions->Add("savecurrentfilter");
-		$item->Body = "<a class=\"ewSaveFilter\" data-form=\"fmembership_userslistsrch\" href=\"#\">" . $Language->Phrase("SaveCurrentFilter") . "</a>";
+		$item->Body = "<a class=\"ewSaveFilter\" data-form=\"fuserlevelslistsrch\" href=\"#\">" . $Language->Phrase("SaveCurrentFilter") . "</a>";
 		$item->Visible = TRUE;
 		$item = &$this->FilterOptions->Add("deletefilter");
-		$item->Body = "<a class=\"ewDeleteFilter\" data-form=\"fmembership_userslistsrch\" href=\"#\">" . $Language->Phrase("DeleteFilter") . "</a>";
+		$item->Body = "<a class=\"ewDeleteFilter\" data-form=\"fuserlevelslistsrch\" href=\"#\">" . $Language->Phrase("DeleteFilter") . "</a>";
 		$item->Visible = TRUE;
 		$this->FilterOptions->UseDropDownButton = TRUE;
 		$this->FilterOptions->UseButtonGroup = !$this->FilterOptions->UseDropDownButton;
@@ -1249,7 +1135,7 @@ class cmembership_users_list extends cmembership_users {
 					$item = &$option->Add("custom_" . $listaction->Action);
 					$caption = $listaction->Caption;
 					$icon = ($listaction->Icon <> "") ? "<span class=\"" . ew_HtmlEncode($listaction->Icon) . "\" data-caption=\"" . ew_HtmlEncode($caption) . "\"></span> " : $caption;
-					$item->Body = "<a class=\"ewAction ewListAction\" title=\"" . ew_HtmlEncode($caption) . "\" data-caption=\"" . ew_HtmlEncode($caption) . "\" href=\"\" onclick=\"ew_SubmitAction(event,jQuery.extend({f:document.fmembership_userslist}," . $listaction->ToJson(TRUE) . "));return false;\">" . $icon . "</a>";
+					$item->Body = "<a class=\"ewAction ewListAction\" title=\"" . ew_HtmlEncode($caption) . "\" data-caption=\"" . ew_HtmlEncode($caption) . "\" href=\"\" onclick=\"ew_SubmitAction(event,jQuery.extend({f:document.fuserlevelslist}," . $listaction->ToJson(TRUE) . "));return false;\">" . $icon . "</a>";
 					$item->Visible = $listaction->Allow;
 				}
 			}
@@ -1302,19 +1188,7 @@ class cmembership_users_list extends cmembership_users {
 				while (!$rs->EOF) {
 					$this->SelectedIndex++;
 					$row = $rs->fields;
-					$user = $row['email'];
-					if ($userlist <> "") $userlist .= ",";
-					$userlist .= $user;
-					if ($UserAction == "resendregisteremail")
-						$Processed = FALSE;
-					elseif ($UserAction == "resetconcurrentuser")
-						$Processed = FALSE;
-					elseif ($UserAction == "resetloginretry")
-						$Processed = FALSE;
-					elseif ($UserAction == "setpasswordexpired")
-						$Processed = FALSE;
-					else
-						$Processed = $this->Row_CustomAction($UserAction, $row);
+					$Processed = $this->Row_CustomAction($UserAction, $row);
 					if (!$Processed) break;
 					$rs->MoveNext();
 				}
@@ -1364,7 +1238,7 @@ class cmembership_users_list extends cmembership_users {
 		// Search button
 		$item = &$this->SearchOptions->Add("searchtoggle");
 		$SearchToggleClass = ($this->SearchWhere <> "") ? " active" : " active";
-		$item->Body = "<button type=\"button\" class=\"btn btn-default ewSearchToggle" . $SearchToggleClass . "\" title=\"" . $Language->Phrase("SearchPanel") . "\" data-caption=\"" . $Language->Phrase("SearchPanel") . "\" data-toggle=\"button\" data-form=\"fmembership_userslistsrch\">" . $Language->Phrase("SearchBtn") . "</button>";
+		$item->Body = "<button type=\"button\" class=\"btn btn-default ewSearchToggle" . $SearchToggleClass . "\" title=\"" . $Language->Phrase("SearchPanel") . "\" data-caption=\"" . $Language->Phrase("SearchPanel") . "\" data-toggle=\"button\" data-form=\"fuserlevelslistsrch\">" . $Language->Phrase("SearchBtn") . "</button>";
 		$item->Visible = TRUE;
 
 		// Show all button
@@ -1499,40 +1373,21 @@ class cmembership_users_list extends cmembership_users {
 		// Call Row Selected event
 		$row = &$rs->fields;
 		$this->Row_Selected($row);
-		$this->memberID->setDbValue($rs->fields('memberID'));
-		$this->passMD5->setDbValue($rs->fields('passMD5'));
-		$this->_email->setDbValue($rs->fields('email'));
-		$this->signupDate->setDbValue($rs->fields('signupDate'));
-		$this->groupID->setDbValue($rs->fields('groupID'));
-		$this->isBanned->setDbValue($rs->fields('isBanned'));
-		$this->isApproved->setDbValue($rs->fields('isApproved'));
-		$this->custom1->setDbValue($rs->fields('custom1'));
-		$this->custom2->setDbValue($rs->fields('custom2'));
-		$this->custom3->setDbValue($rs->fields('custom3'));
-		$this->custom4->setDbValue($rs->fields('custom4'));
-		$this->comments->setDbValue($rs->fields('comments'));
-		$this->pass_reset_key->setDbValue($rs->fields('pass_reset_key'));
-		$this->pass_reset_expiry->setDbValue($rs->fields('pass_reset_expiry'));
+		$this->userlevelid->setDbValue($rs->fields('userlevelid'));
+		if (is_null($this->userlevelid->CurrentValue)) {
+			$this->userlevelid->CurrentValue = 0;
+		} else {
+			$this->userlevelid->CurrentValue = intval($this->userlevelid->CurrentValue);
+		}
+		$this->userlevelname->setDbValue($rs->fields('userlevelname'));
 	}
 
 	// Load DbValue from recordset
 	function LoadDbValues(&$rs) {
 		if (!$rs || !is_array($rs) && $rs->EOF) return;
 		$row = is_array($rs) ? $rs : $rs->fields;
-		$this->memberID->DbValue = $row['memberID'];
-		$this->passMD5->DbValue = $row['passMD5'];
-		$this->_email->DbValue = $row['email'];
-		$this->signupDate->DbValue = $row['signupDate'];
-		$this->groupID->DbValue = $row['groupID'];
-		$this->isBanned->DbValue = $row['isBanned'];
-		$this->isApproved->DbValue = $row['isApproved'];
-		$this->custom1->DbValue = $row['custom1'];
-		$this->custom2->DbValue = $row['custom2'];
-		$this->custom3->DbValue = $row['custom3'];
-		$this->custom4->DbValue = $row['custom4'];
-		$this->comments->DbValue = $row['comments'];
-		$this->pass_reset_key->DbValue = $row['pass_reset_key'];
-		$this->pass_reset_expiry->DbValue = $row['pass_reset_expiry'];
+		$this->userlevelid->DbValue = $row['userlevelid'];
+		$this->userlevelname->DbValue = $row['userlevelname'];
 	}
 
 	// Load old record
@@ -1540,8 +1395,8 @@ class cmembership_users_list extends cmembership_users {
 
 		// Load key values from Session
 		$bValidKey = TRUE;
-		if (strval($this->getKey("memberID")) <> "")
-			$this->memberID->CurrentValue = $this->getKey("memberID"); // memberID
+		if (strval($this->getKey("userlevelid")) <> "")
+			$this->userlevelid->CurrentValue = $this->getKey("userlevelid"); // userlevelid
 		else
 			$bValidKey = FALSE;
 
@@ -1574,147 +1429,34 @@ class cmembership_users_list extends cmembership_users {
 		$this->Row_Rendering();
 
 		// Common render codes for all row types
-		// memberID
-		// passMD5
-		// email
-		// signupDate
-		// groupID
-		// isBanned
-		// isApproved
-		// custom1
-		// custom2
-		// custom3
-		// custom4
-		// comments
-		// pass_reset_key
-		// pass_reset_expiry
+		// userlevelid
+		// userlevelname
 
 		if ($this->RowType == EW_ROWTYPE_VIEW) { // View row
 
-		// memberID
-		$this->memberID->ViewValue = $this->memberID->CurrentValue;
-		$this->memberID->ViewCustomAttributes = "";
+		// userlevelid
+		$this->userlevelid->ViewValue = $this->userlevelid->CurrentValue;
+		$this->userlevelid->ViewCustomAttributes = "";
 
-		// passMD5
-		$this->passMD5->ViewValue = $this->passMD5->CurrentValue;
-		$this->passMD5->ViewCustomAttributes = "";
+		// userlevelname
+		$this->userlevelname->ViewValue = $this->userlevelname->CurrentValue;
+		if ($Security->GetUserLevelName($this->userlevelid->CurrentValue) <> "") $this->userlevelname->ViewValue = $Security->GetUserLevelName($this->userlevelid->CurrentValue);
+		$this->userlevelname->ViewCustomAttributes = "";
 
-		// email
-		$this->_email->ViewValue = $this->_email->CurrentValue;
-		$this->_email->ViewCustomAttributes = "";
+			// userlevelid
+			$this->userlevelid->LinkCustomAttributes = "";
+			$this->userlevelid->HrefValue = "";
+			$this->userlevelid->TooltipValue = "";
 
-		// signupDate
-		$this->signupDate->ViewValue = $this->signupDate->CurrentValue;
-		$this->signupDate->ViewValue = ew_FormatDateTime($this->signupDate->ViewValue, 5);
-		$this->signupDate->ViewCustomAttributes = "";
-
-		// groupID
-		if ($Security->CanAdmin()) { // System admin
-		if (strval($this->groupID->CurrentValue) <> "") {
-			$sFilterWrk = "`userlevelid`" . ew_SearchString("=", $this->groupID->CurrentValue, EW_DATATYPE_NUMBER, "");
-		switch (@$gsLanguage) {
-			case "es":
-				$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
-				$sWhereWrk = "";
-				break;
-			default:
-				$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
-				$sWhereWrk = "";
-				break;
-		}
-		ew_AddFilter($sWhereWrk, $sFilterWrk);
-		$this->Lookup_Selecting($this->groupID, $sWhereWrk); // Call Lookup selecting
-		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
-			$rswrk = Conn()->Execute($sSqlWrk);
-			if ($rswrk && !$rswrk->EOF) { // Lookup values found
-				$arwrk = array();
-				$arwrk[1] = $rswrk->fields('DispFld');
-				$this->groupID->ViewValue = $this->groupID->DisplayValue($arwrk);
-				$rswrk->Close();
-			} else {
-				$this->groupID->ViewValue = $this->groupID->CurrentValue;
-			}
-		} else {
-			$this->groupID->ViewValue = NULL;
-		}
-		} else {
-			$this->groupID->ViewValue = $Language->Phrase("PasswordMask");
-		}
-		$this->groupID->ViewCustomAttributes = "";
-
-		// isBanned
-		$this->isBanned->ViewValue = $this->isBanned->CurrentValue;
-		$this->isBanned->ViewCustomAttributes = "";
-
-		// isApproved
-		$this->isApproved->ViewValue = $this->isApproved->CurrentValue;
-		$this->isApproved->ViewCustomAttributes = "";
-
-		// pass_reset_key
-		$this->pass_reset_key->ViewValue = $this->pass_reset_key->CurrentValue;
-		$this->pass_reset_key->ViewCustomAttributes = "";
-
-		// pass_reset_expiry
-		$this->pass_reset_expiry->ViewValue = $this->pass_reset_expiry->CurrentValue;
-		$this->pass_reset_expiry->ViewCustomAttributes = "";
-
-			// memberID
-			$this->memberID->LinkCustomAttributes = "";
-			$this->memberID->HrefValue = "";
-			$this->memberID->TooltipValue = "";
-
-			// passMD5
-			$this->passMD5->LinkCustomAttributes = "";
-			$this->passMD5->HrefValue = "";
-			$this->passMD5->TooltipValue = "";
-
-			// email
-			$this->_email->LinkCustomAttributes = "";
-			$this->_email->HrefValue = "";
-			$this->_email->TooltipValue = "";
-
-			// signupDate
-			$this->signupDate->LinkCustomAttributes = "";
-			$this->signupDate->HrefValue = "";
-			$this->signupDate->TooltipValue = "";
-
-			// groupID
-			$this->groupID->LinkCustomAttributes = "";
-			$this->groupID->HrefValue = "";
-			$this->groupID->TooltipValue = "";
-
-			// isBanned
-			$this->isBanned->LinkCustomAttributes = "";
-			$this->isBanned->HrefValue = "";
-			$this->isBanned->TooltipValue = "";
-
-			// isApproved
-			$this->isApproved->LinkCustomAttributes = "";
-			$this->isApproved->HrefValue = "";
-			$this->isApproved->TooltipValue = "";
-
-			// pass_reset_key
-			$this->pass_reset_key->LinkCustomAttributes = "";
-			$this->pass_reset_key->HrefValue = "";
-			$this->pass_reset_key->TooltipValue = "";
-
-			// pass_reset_expiry
-			$this->pass_reset_expiry->LinkCustomAttributes = "";
-			$this->pass_reset_expiry->HrefValue = "";
-			$this->pass_reset_expiry->TooltipValue = "";
+			// userlevelname
+			$this->userlevelname->LinkCustomAttributes = "";
+			$this->userlevelname->HrefValue = "";
+			$this->userlevelname->TooltipValue = "";
 		}
 
 		// Call Row Rendered event
 		if ($this->RowType <> EW_ROWTYPE_AGGREGATEINIT)
 			$this->Row_Rendered();
-	}
-
-	// Show link optionally based on User ID
-	function ShowOptionLink($id = "") {
-		global $Security;
-		if ($Security->IsLoggedIn() && !$Security->IsAdmin() && !$this->UserIDAllow($id))
-			return $Security->IsValidUserID($this->memberID->CurrentValue);
-		return TRUE;
 	}
 
 	// Set up Breadcrumb
@@ -1850,30 +1592,30 @@ class cmembership_users_list extends cmembership_users {
 <?php
 
 // Create page object
-if (!isset($membership_users_list)) $membership_users_list = new cmembership_users_list();
+if (!isset($userlevels_list)) $userlevels_list = new cuserlevels_list();
 
 // Page init
-$membership_users_list->Page_Init();
+$userlevels_list->Page_Init();
 
 // Page main
-$membership_users_list->Page_Main();
+$userlevels_list->Page_Main();
 
 // Global Page Rendering event (in userfn*.php)
 Page_Rendering();
 
 // Page Rendering event
-$membership_users_list->Page_Render();
+$userlevels_list->Page_Render();
 ?>
 <?php include_once "header.php" ?>
 <script type="text/javascript">
 
 // Form object
 var CurrentPageID = EW_PAGE_ID = "list";
-var CurrentForm = fmembership_userslist = new ew_Form("fmembership_userslist", "list");
-fmembership_userslist.FormKeyCountName = '<?php echo $membership_users_list->FormKeyCountName ?>';
+var CurrentForm = fuserlevelslist = new ew_Form("fuserlevelslist", "list");
+fuserlevelslist.FormKeyCountName = '<?php echo $userlevels_list->FormKeyCountName ?>';
 
 // Form_CustomValidate event
-fmembership_userslist.Form_CustomValidate = 
+fuserlevelslist.Form_CustomValidate = 
  function(fobj) { // DO NOT CHANGE THIS LINE!
 
  	// Your custom validation code here, return false if invalid. 
@@ -1882,16 +1624,15 @@ fmembership_userslist.Form_CustomValidate =
 
 // Use JavaScript validation or not
 <?php if (EW_CLIENT_VALIDATE) { ?>
-fmembership_userslist.ValidateRequired = true;
+fuserlevelslist.ValidateRequired = true;
 <?php } else { ?>
-fmembership_userslist.ValidateRequired = false; 
+fuserlevelslist.ValidateRequired = false; 
 <?php } ?>
 
 // Dynamic selection lists
-fmembership_userslist.Lists["x_groupID"] = {"LinkField":"x_userlevelid","Ajax":true,"AutoFill":false,"DisplayFields":["x_userlevelname","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":""};
-
 // Form object for search
-var CurrentSearchForm = fmembership_userslistsrch = new ew_Form("fmembership_userslistsrch");
+
+var CurrentSearchForm = fuserlevelslistsrch = new ew_Form("fuserlevelslistsrch");
 </script>
 <script type="text/javascript">
 
@@ -1899,65 +1640,65 @@ var CurrentSearchForm = fmembership_userslistsrch = new ew_Form("fmembership_use
 </script>
 <div class="ewToolbar">
 <?php $Breadcrumb->Render(); ?>
-<?php if ($membership_users_list->TotalRecs > 0 && $membership_users_list->ExportOptions->Visible()) { ?>
-<?php $membership_users_list->ExportOptions->Render("body") ?>
+<?php if ($userlevels_list->TotalRecs > 0 && $userlevels_list->ExportOptions->Visible()) { ?>
+<?php $userlevels_list->ExportOptions->Render("body") ?>
 <?php } ?>
-<?php if ($membership_users_list->SearchOptions->Visible()) { ?>
-<?php $membership_users_list->SearchOptions->Render("body") ?>
+<?php if ($userlevels_list->SearchOptions->Visible()) { ?>
+<?php $userlevels_list->SearchOptions->Render("body") ?>
 <?php } ?>
-<?php if ($membership_users_list->FilterOptions->Visible()) { ?>
-<?php $membership_users_list->FilterOptions->Render("body") ?>
+<?php if ($userlevels_list->FilterOptions->Visible()) { ?>
+<?php $userlevels_list->FilterOptions->Render("body") ?>
 <?php } ?>
 <?php echo $Language->SelectionForm(); ?>
 <div class="clearfix"></div>
 </div>
 <?php
-	$bSelectLimit = $membership_users_list->UseSelectLimit;
+	$bSelectLimit = $userlevels_list->UseSelectLimit;
 	if ($bSelectLimit) {
-		if ($membership_users_list->TotalRecs <= 0)
-			$membership_users_list->TotalRecs = $membership_users->SelectRecordCount();
+		if ($userlevels_list->TotalRecs <= 0)
+			$userlevels_list->TotalRecs = $userlevels->SelectRecordCount();
 	} else {
-		if (!$membership_users_list->Recordset && ($membership_users_list->Recordset = $membership_users_list->LoadRecordset()))
-			$membership_users_list->TotalRecs = $membership_users_list->Recordset->RecordCount();
+		if (!$userlevels_list->Recordset && ($userlevels_list->Recordset = $userlevels_list->LoadRecordset()))
+			$userlevels_list->TotalRecs = $userlevels_list->Recordset->RecordCount();
 	}
-	$membership_users_list->StartRec = 1;
-	if ($membership_users_list->DisplayRecs <= 0 || ($membership_users->Export <> "" && $membership_users->ExportAll)) // Display all records
-		$membership_users_list->DisplayRecs = $membership_users_list->TotalRecs;
-	if (!($membership_users->Export <> "" && $membership_users->ExportAll))
-		$membership_users_list->SetUpStartRec(); // Set up start record position
+	$userlevels_list->StartRec = 1;
+	if ($userlevels_list->DisplayRecs <= 0 || ($userlevels->Export <> "" && $userlevels->ExportAll)) // Display all records
+		$userlevels_list->DisplayRecs = $userlevels_list->TotalRecs;
+	if (!($userlevels->Export <> "" && $userlevels->ExportAll))
+		$userlevels_list->SetUpStartRec(); // Set up start record position
 	if ($bSelectLimit)
-		$membership_users_list->Recordset = $membership_users_list->LoadRecordset($membership_users_list->StartRec-1, $membership_users_list->DisplayRecs);
+		$userlevels_list->Recordset = $userlevels_list->LoadRecordset($userlevels_list->StartRec-1, $userlevels_list->DisplayRecs);
 
 	// Set no record found message
-	if ($membership_users->CurrentAction == "" && $membership_users_list->TotalRecs == 0) {
+	if ($userlevels->CurrentAction == "" && $userlevels_list->TotalRecs == 0) {
 		if (!$Security->CanList())
-			$membership_users_list->setWarningMessage($Language->Phrase("NoPermission"));
-		if ($membership_users_list->SearchWhere == "0=101")
-			$membership_users_list->setWarningMessage($Language->Phrase("EnterSearchCriteria"));
+			$userlevels_list->setWarningMessage($Language->Phrase("NoPermission"));
+		if ($userlevels_list->SearchWhere == "0=101")
+			$userlevels_list->setWarningMessage($Language->Phrase("EnterSearchCriteria"));
 		else
-			$membership_users_list->setWarningMessage($Language->Phrase("NoRecord"));
+			$userlevels_list->setWarningMessage($Language->Phrase("NoRecord"));
 	}
-$membership_users_list->RenderOtherOptions();
+$userlevels_list->RenderOtherOptions();
 ?>
 <?php if ($Security->CanSearch()) { ?>
-<?php if ($membership_users->Export == "" && $membership_users->CurrentAction == "") { ?>
-<form name="fmembership_userslistsrch" id="fmembership_userslistsrch" class="form-inline ewForm" action="<?php echo ew_CurrentPage() ?>">
-<?php $SearchPanelClass = ($membership_users_list->SearchWhere <> "") ? " in" : " in"; ?>
-<div id="fmembership_userslistsrch_SearchPanel" class="ewSearchPanel collapse<?php echo $SearchPanelClass ?>">
+<?php if ($userlevels->Export == "" && $userlevels->CurrentAction == "") { ?>
+<form name="fuserlevelslistsrch" id="fuserlevelslistsrch" class="form-inline ewForm" action="<?php echo ew_CurrentPage() ?>">
+<?php $SearchPanelClass = ($userlevels_list->SearchWhere <> "") ? " in" : " in"; ?>
+<div id="fuserlevelslistsrch_SearchPanel" class="ewSearchPanel collapse<?php echo $SearchPanelClass ?>">
 <input type="hidden" name="cmd" value="search">
-<input type="hidden" name="t" value="membership_users">
+<input type="hidden" name="t" value="userlevels">
 	<div class="ewBasicSearch">
 <div id="xsr_1" class="ewRow">
 	<div class="ewQuickSearch input-group">
-	<input type="text" name="<?php echo EW_TABLE_BASIC_SEARCH ?>" id="<?php echo EW_TABLE_BASIC_SEARCH ?>" class="form-control" value="<?php echo ew_HtmlEncode($membership_users_list->BasicSearch->getKeyword()) ?>" placeholder="<?php echo ew_HtmlEncode($Language->Phrase("Search")) ?>">
-	<input type="hidden" name="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" id="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" value="<?php echo ew_HtmlEncode($membership_users_list->BasicSearch->getType()) ?>">
+	<input type="text" name="<?php echo EW_TABLE_BASIC_SEARCH ?>" id="<?php echo EW_TABLE_BASIC_SEARCH ?>" class="form-control" value="<?php echo ew_HtmlEncode($userlevels_list->BasicSearch->getKeyword()) ?>" placeholder="<?php echo ew_HtmlEncode($Language->Phrase("Search")) ?>">
+	<input type="hidden" name="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" id="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" value="<?php echo ew_HtmlEncode($userlevels_list->BasicSearch->getType()) ?>">
 	<div class="input-group-btn">
-		<button type="button" data-toggle="dropdown" class="btn btn-default"><span id="searchtype"><?php echo $membership_users_list->BasicSearch->getTypeNameShort() ?></span><span class="caret"></span></button>
+		<button type="button" data-toggle="dropdown" class="btn btn-default"><span id="searchtype"><?php echo $userlevels_list->BasicSearch->getTypeNameShort() ?></span><span class="caret"></span></button>
 		<ul class="dropdown-menu pull-right" role="menu">
-			<li<?php if ($membership_users_list->BasicSearch->getType() == "") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this)"><?php echo $Language->Phrase("QuickSearchAuto") ?></a></li>
-			<li<?php if ($membership_users_list->BasicSearch->getType() == "=") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'=')"><?php echo $Language->Phrase("QuickSearchExact") ?></a></li>
-			<li<?php if ($membership_users_list->BasicSearch->getType() == "AND") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'AND')"><?php echo $Language->Phrase("QuickSearchAll") ?></a></li>
-			<li<?php if ($membership_users_list->BasicSearch->getType() == "OR") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'OR')"><?php echo $Language->Phrase("QuickSearchAny") ?></a></li>
+			<li<?php if ($userlevels_list->BasicSearch->getType() == "") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this)"><?php echo $Language->Phrase("QuickSearchAuto") ?></a></li>
+			<li<?php if ($userlevels_list->BasicSearch->getType() == "=") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'=')"><?php echo $Language->Phrase("QuickSearchExact") ?></a></li>
+			<li<?php if ($userlevels_list->BasicSearch->getType() == "AND") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'AND')"><?php echo $Language->Phrase("QuickSearchAll") ?></a></li>
+			<li<?php if ($userlevels_list->BasicSearch->getType() == "OR") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'OR')"><?php echo $Language->Phrase("QuickSearchAny") ?></a></li>
 		</ul>
 	<button class="btn btn-primary ewButton" name="btnsubmit" id="btnsubmit" type="submit"><?php echo $Language->Phrase("QuickSearchBtn") ?></button>
 	</div>
@@ -1968,268 +1709,149 @@ $membership_users_list->RenderOtherOptions();
 </form>
 <?php } ?>
 <?php } ?>
-<?php $membership_users_list->ShowPageHeader(); ?>
+<?php $userlevels_list->ShowPageHeader(); ?>
 <?php
-$membership_users_list->ShowMessage();
+$userlevels_list->ShowMessage();
 ?>
-<?php if ($membership_users_list->TotalRecs > 0 || $membership_users->CurrentAction <> "") { ?>
+<?php if ($userlevels_list->TotalRecs > 0 || $userlevels->CurrentAction <> "") { ?>
 <div class="panel panel-default ewGrid">
-<form name="fmembership_userslist" id="fmembership_userslist" class="form-inline ewForm ewListForm" action="<?php echo ew_CurrentPage() ?>" method="post">
-<?php if ($membership_users_list->CheckToken) { ?>
-<input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $membership_users_list->Token ?>">
+<form name="fuserlevelslist" id="fuserlevelslist" class="form-inline ewForm ewListForm" action="<?php echo ew_CurrentPage() ?>" method="post">
+<?php if ($userlevels_list->CheckToken) { ?>
+<input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $userlevels_list->Token ?>">
 <?php } ?>
-<input type="hidden" name="t" value="membership_users">
-<div id="gmp_membership_users" class="<?php if (ew_IsResponsiveLayout()) { echo "table-responsive "; } ?>ewGridMiddlePanel">
-<?php if ($membership_users_list->TotalRecs > 0) { ?>
-<table id="tbl_membership_userslist" class="table ewTable">
-<?php echo $membership_users->TableCustomInnerHtml ?>
+<input type="hidden" name="t" value="userlevels">
+<div id="gmp_userlevels" class="<?php if (ew_IsResponsiveLayout()) { echo "table-responsive "; } ?>ewGridMiddlePanel">
+<?php if ($userlevels_list->TotalRecs > 0) { ?>
+<table id="tbl_userlevelslist" class="table ewTable">
+<?php echo $userlevels->TableCustomInnerHtml ?>
 <thead><!-- Table header -->
 	<tr class="ewTableHeader">
 <?php
 
 // Header row
-$membership_users_list->RowType = EW_ROWTYPE_HEADER;
+$userlevels_list->RowType = EW_ROWTYPE_HEADER;
 
 // Render list options
-$membership_users_list->RenderListOptions();
+$userlevels_list->RenderListOptions();
 
 // Render list options (header, left)
-$membership_users_list->ListOptions->Render("header", "left");
+$userlevels_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($membership_users->memberID->Visible) { // memberID ?>
-	<?php if ($membership_users->SortUrl($membership_users->memberID) == "") { ?>
-		<th data-name="memberID"><div id="elh_membership_users_memberID" class="membership_users_memberID"><div class="ewTableHeaderCaption"><?php echo $membership_users->memberID->FldCaption() ?></div></div></th>
+<?php if ($userlevels->userlevelid->Visible) { // userlevelid ?>
+	<?php if ($userlevels->SortUrl($userlevels->userlevelid) == "") { ?>
+		<th data-name="userlevelid"><div id="elh_userlevels_userlevelid" class="userlevels_userlevelid"><div class="ewTableHeaderCaption"><?php echo $userlevels->userlevelid->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="memberID"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->memberID) ?>',1);"><div id="elh_membership_users_memberID" class="membership_users_memberID">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->memberID->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->memberID->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->memberID->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+		<th data-name="userlevelid"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $userlevels->SortUrl($userlevels->userlevelid) ?>',1);"><div id="elh_userlevels_userlevelid" class="userlevels_userlevelid">
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $userlevels->userlevelid->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($userlevels->userlevelid->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($userlevels->userlevelid->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
-<?php if ($membership_users->passMD5->Visible) { // passMD5 ?>
-	<?php if ($membership_users->SortUrl($membership_users->passMD5) == "") { ?>
-		<th data-name="passMD5"><div id="elh_membership_users_passMD5" class="membership_users_passMD5"><div class="ewTableHeaderCaption"><?php echo $membership_users->passMD5->FldCaption() ?></div></div></th>
+<?php if ($userlevels->userlevelname->Visible) { // userlevelname ?>
+	<?php if ($userlevels->SortUrl($userlevels->userlevelname) == "") { ?>
+		<th data-name="userlevelname"><div id="elh_userlevels_userlevelname" class="userlevels_userlevelname"><div class="ewTableHeaderCaption"><?php echo $userlevels->userlevelname->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="passMD5"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->passMD5) ?>',1);"><div id="elh_membership_users_passMD5" class="membership_users_passMD5">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->passMD5->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->passMD5->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->passMD5->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($membership_users->_email->Visible) { // email ?>
-	<?php if ($membership_users->SortUrl($membership_users->_email) == "") { ?>
-		<th data-name="_email"><div id="elh_membership_users__email" class="membership_users__email"><div class="ewTableHeaderCaption"><?php echo $membership_users->_email->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="_email"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->_email) ?>',1);"><div id="elh_membership_users__email" class="membership_users__email">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->_email->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->_email->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->_email->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($membership_users->signupDate->Visible) { // signupDate ?>
-	<?php if ($membership_users->SortUrl($membership_users->signupDate) == "") { ?>
-		<th data-name="signupDate"><div id="elh_membership_users_signupDate" class="membership_users_signupDate"><div class="ewTableHeaderCaption"><?php echo $membership_users->signupDate->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="signupDate"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->signupDate) ?>',1);"><div id="elh_membership_users_signupDate" class="membership_users_signupDate">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->signupDate->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->signupDate->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->signupDate->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($membership_users->groupID->Visible) { // groupID ?>
-	<?php if ($membership_users->SortUrl($membership_users->groupID) == "") { ?>
-		<th data-name="groupID"><div id="elh_membership_users_groupID" class="membership_users_groupID"><div class="ewTableHeaderCaption"><?php echo $membership_users->groupID->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="groupID"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->groupID) ?>',1);"><div id="elh_membership_users_groupID" class="membership_users_groupID">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->groupID->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->groupID->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->groupID->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($membership_users->isBanned->Visible) { // isBanned ?>
-	<?php if ($membership_users->SortUrl($membership_users->isBanned) == "") { ?>
-		<th data-name="isBanned"><div id="elh_membership_users_isBanned" class="membership_users_isBanned"><div class="ewTableHeaderCaption"><?php echo $membership_users->isBanned->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="isBanned"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->isBanned) ?>',1);"><div id="elh_membership_users_isBanned" class="membership_users_isBanned">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->isBanned->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->isBanned->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->isBanned->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($membership_users->isApproved->Visible) { // isApproved ?>
-	<?php if ($membership_users->SortUrl($membership_users->isApproved) == "") { ?>
-		<th data-name="isApproved"><div id="elh_membership_users_isApproved" class="membership_users_isApproved"><div class="ewTableHeaderCaption"><?php echo $membership_users->isApproved->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="isApproved"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->isApproved) ?>',1);"><div id="elh_membership_users_isApproved" class="membership_users_isApproved">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->isApproved->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->isApproved->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->isApproved->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($membership_users->pass_reset_key->Visible) { // pass_reset_key ?>
-	<?php if ($membership_users->SortUrl($membership_users->pass_reset_key) == "") { ?>
-		<th data-name="pass_reset_key"><div id="elh_membership_users_pass_reset_key" class="membership_users_pass_reset_key"><div class="ewTableHeaderCaption"><?php echo $membership_users->pass_reset_key->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="pass_reset_key"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->pass_reset_key) ?>',1);"><div id="elh_membership_users_pass_reset_key" class="membership_users_pass_reset_key">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->pass_reset_key->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->pass_reset_key->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->pass_reset_key->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($membership_users->pass_reset_expiry->Visible) { // pass_reset_expiry ?>
-	<?php if ($membership_users->SortUrl($membership_users->pass_reset_expiry) == "") { ?>
-		<th data-name="pass_reset_expiry"><div id="elh_membership_users_pass_reset_expiry" class="membership_users_pass_reset_expiry"><div class="ewTableHeaderCaption"><?php echo $membership_users->pass_reset_expiry->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="pass_reset_expiry"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $membership_users->SortUrl($membership_users->pass_reset_expiry) ?>',1);"><div id="elh_membership_users_pass_reset_expiry" class="membership_users_pass_reset_expiry">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $membership_users->pass_reset_expiry->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($membership_users->pass_reset_expiry->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($membership_users->pass_reset_expiry->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+		<th data-name="userlevelname"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $userlevels->SortUrl($userlevels->userlevelname) ?>',1);"><div id="elh_userlevels_userlevelname" class="userlevels_userlevelname">
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $userlevels->userlevelname->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($userlevels->userlevelname->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($userlevels->userlevelname->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
 <?php
 
 // Render list options (header, right)
-$membership_users_list->ListOptions->Render("header", "right");
+$userlevels_list->ListOptions->Render("header", "right");
 ?>
 	</tr>
 </thead>
 <tbody>
 <?php
-if ($membership_users->ExportAll && $membership_users->Export <> "") {
-	$membership_users_list->StopRec = $membership_users_list->TotalRecs;
+if ($userlevels->ExportAll && $userlevels->Export <> "") {
+	$userlevels_list->StopRec = $userlevels_list->TotalRecs;
 } else {
 
 	// Set the last record to display
-	if ($membership_users_list->TotalRecs > $membership_users_list->StartRec + $membership_users_list->DisplayRecs - 1)
-		$membership_users_list->StopRec = $membership_users_list->StartRec + $membership_users_list->DisplayRecs - 1;
+	if ($userlevels_list->TotalRecs > $userlevels_list->StartRec + $userlevels_list->DisplayRecs - 1)
+		$userlevels_list->StopRec = $userlevels_list->StartRec + $userlevels_list->DisplayRecs - 1;
 	else
-		$membership_users_list->StopRec = $membership_users_list->TotalRecs;
+		$userlevels_list->StopRec = $userlevels_list->TotalRecs;
 }
-$membership_users_list->RecCnt = $membership_users_list->StartRec - 1;
-if ($membership_users_list->Recordset && !$membership_users_list->Recordset->EOF) {
-	$membership_users_list->Recordset->MoveFirst();
-	$bSelectLimit = $membership_users_list->UseSelectLimit;
-	if (!$bSelectLimit && $membership_users_list->StartRec > 1)
-		$membership_users_list->Recordset->Move($membership_users_list->StartRec - 1);
-} elseif (!$membership_users->AllowAddDeleteRow && $membership_users_list->StopRec == 0) {
-	$membership_users_list->StopRec = $membership_users->GridAddRowCount;
+$userlevels_list->RecCnt = $userlevels_list->StartRec - 1;
+if ($userlevels_list->Recordset && !$userlevels_list->Recordset->EOF) {
+	$userlevels_list->Recordset->MoveFirst();
+	$bSelectLimit = $userlevels_list->UseSelectLimit;
+	if (!$bSelectLimit && $userlevels_list->StartRec > 1)
+		$userlevels_list->Recordset->Move($userlevels_list->StartRec - 1);
+} elseif (!$userlevels->AllowAddDeleteRow && $userlevels_list->StopRec == 0) {
+	$userlevels_list->StopRec = $userlevels->GridAddRowCount;
 }
 
 // Initialize aggregate
-$membership_users->RowType = EW_ROWTYPE_AGGREGATEINIT;
-$membership_users->ResetAttrs();
-$membership_users_list->RenderRow();
-while ($membership_users_list->RecCnt < $membership_users_list->StopRec) {
-	$membership_users_list->RecCnt++;
-	if (intval($membership_users_list->RecCnt) >= intval($membership_users_list->StartRec)) {
-		$membership_users_list->RowCnt++;
+$userlevels->RowType = EW_ROWTYPE_AGGREGATEINIT;
+$userlevels->ResetAttrs();
+$userlevels_list->RenderRow();
+while ($userlevels_list->RecCnt < $userlevels_list->StopRec) {
+	$userlevels_list->RecCnt++;
+	if (intval($userlevels_list->RecCnt) >= intval($userlevels_list->StartRec)) {
+		$userlevels_list->RowCnt++;
 
 		// Set up key count
-		$membership_users_list->KeyCount = $membership_users_list->RowIndex;
+		$userlevels_list->KeyCount = $userlevels_list->RowIndex;
 
 		// Init row class and style
-		$membership_users->ResetAttrs();
-		$membership_users->CssClass = "";
-		if ($membership_users->CurrentAction == "gridadd") {
+		$userlevels->ResetAttrs();
+		$userlevels->CssClass = "";
+		if ($userlevels->CurrentAction == "gridadd") {
 		} else {
-			$membership_users_list->LoadRowValues($membership_users_list->Recordset); // Load row values
+			$userlevels_list->LoadRowValues($userlevels_list->Recordset); // Load row values
 		}
-		$membership_users->RowType = EW_ROWTYPE_VIEW; // Render view
+		$userlevels->RowType = EW_ROWTYPE_VIEW; // Render view
 
 		// Set up row id / data-rowindex
-		$membership_users->RowAttrs = array_merge($membership_users->RowAttrs, array('data-rowindex'=>$membership_users_list->RowCnt, 'id'=>'r' . $membership_users_list->RowCnt . '_membership_users', 'data-rowtype'=>$membership_users->RowType));
+		$userlevels->RowAttrs = array_merge($userlevels->RowAttrs, array('data-rowindex'=>$userlevels_list->RowCnt, 'id'=>'r' . $userlevels_list->RowCnt . '_userlevels', 'data-rowtype'=>$userlevels->RowType));
 
 		// Render row
-		$membership_users_list->RenderRow();
+		$userlevels_list->RenderRow();
 
 		// Render list options
-		$membership_users_list->RenderListOptions();
+		$userlevels_list->RenderListOptions();
 ?>
-	<tr<?php echo $membership_users->RowAttributes() ?>>
+	<tr<?php echo $userlevels->RowAttributes() ?>>
 <?php
 
 // Render list options (body, left)
-$membership_users_list->ListOptions->Render("body", "left", $membership_users_list->RowCnt);
+$userlevels_list->ListOptions->Render("body", "left", $userlevels_list->RowCnt);
 ?>
-	<?php if ($membership_users->memberID->Visible) { // memberID ?>
-		<td data-name="memberID"<?php echo $membership_users->memberID->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users_memberID" class="membership_users_memberID">
-<span<?php echo $membership_users->memberID->ViewAttributes() ?>>
-<?php echo $membership_users->memberID->ListViewValue() ?></span>
+	<?php if ($userlevels->userlevelid->Visible) { // userlevelid ?>
+		<td data-name="userlevelid"<?php echo $userlevels->userlevelid->CellAttributes() ?>>
+<span id="el<?php echo $userlevels_list->RowCnt ?>_userlevels_userlevelid" class="userlevels_userlevelid">
+<span<?php echo $userlevels->userlevelid->ViewAttributes() ?>>
+<?php echo $userlevels->userlevelid->ListViewValue() ?></span>
 </span>
-<a id="<?php echo $membership_users_list->PageObjName . "_row_" . $membership_users_list->RowCnt ?>"></a></td>
+<a id="<?php echo $userlevels_list->PageObjName . "_row_" . $userlevels_list->RowCnt ?>"></a></td>
 	<?php } ?>
-	<?php if ($membership_users->passMD5->Visible) { // passMD5 ?>
-		<td data-name="passMD5"<?php echo $membership_users->passMD5->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users_passMD5" class="membership_users_passMD5">
-<span<?php echo $membership_users->passMD5->ViewAttributes() ?>>
-<?php echo $membership_users->passMD5->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($membership_users->_email->Visible) { // email ?>
-		<td data-name="_email"<?php echo $membership_users->_email->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users__email" class="membership_users__email">
-<span<?php echo $membership_users->_email->ViewAttributes() ?>>
-<?php echo $membership_users->_email->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($membership_users->signupDate->Visible) { // signupDate ?>
-		<td data-name="signupDate"<?php echo $membership_users->signupDate->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users_signupDate" class="membership_users_signupDate">
-<span<?php echo $membership_users->signupDate->ViewAttributes() ?>>
-<?php echo $membership_users->signupDate->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($membership_users->groupID->Visible) { // groupID ?>
-		<td data-name="groupID"<?php echo $membership_users->groupID->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users_groupID" class="membership_users_groupID">
-<span<?php echo $membership_users->groupID->ViewAttributes() ?>>
-<?php echo $membership_users->groupID->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($membership_users->isBanned->Visible) { // isBanned ?>
-		<td data-name="isBanned"<?php echo $membership_users->isBanned->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users_isBanned" class="membership_users_isBanned">
-<span<?php echo $membership_users->isBanned->ViewAttributes() ?>>
-<?php echo $membership_users->isBanned->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($membership_users->isApproved->Visible) { // isApproved ?>
-		<td data-name="isApproved"<?php echo $membership_users->isApproved->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users_isApproved" class="membership_users_isApproved">
-<span<?php echo $membership_users->isApproved->ViewAttributes() ?>>
-<?php echo $membership_users->isApproved->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($membership_users->pass_reset_key->Visible) { // pass_reset_key ?>
-		<td data-name="pass_reset_key"<?php echo $membership_users->pass_reset_key->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users_pass_reset_key" class="membership_users_pass_reset_key">
-<span<?php echo $membership_users->pass_reset_key->ViewAttributes() ?>>
-<?php echo $membership_users->pass_reset_key->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($membership_users->pass_reset_expiry->Visible) { // pass_reset_expiry ?>
-		<td data-name="pass_reset_expiry"<?php echo $membership_users->pass_reset_expiry->CellAttributes() ?>>
-<span id="el<?php echo $membership_users_list->RowCnt ?>_membership_users_pass_reset_expiry" class="membership_users_pass_reset_expiry">
-<span<?php echo $membership_users->pass_reset_expiry->ViewAttributes() ?>>
-<?php echo $membership_users->pass_reset_expiry->ListViewValue() ?></span>
+	<?php if ($userlevels->userlevelname->Visible) { // userlevelname ?>
+		<td data-name="userlevelname"<?php echo $userlevels->userlevelname->CellAttributes() ?>>
+<span id="el<?php echo $userlevels_list->RowCnt ?>_userlevels_userlevelname" class="userlevels_userlevelname">
+<span<?php echo $userlevels->userlevelname->ViewAttributes() ?>>
+<?php echo $userlevels->userlevelname->ListViewValue() ?></span>
 </span>
 </td>
 	<?php } ?>
 <?php
 
 // Render list options (body, right)
-$membership_users_list->ListOptions->Render("body", "right", $membership_users_list->RowCnt);
+$userlevels_list->ListOptions->Render("body", "right", $userlevels_list->RowCnt);
 ?>
 	</tr>
 <?php
 	}
-	if ($membership_users->CurrentAction <> "gridadd")
-		$membership_users_list->Recordset->MoveNext();
+	if ($userlevels->CurrentAction <> "gridadd")
+		$userlevels_list->Recordset->MoveNext();
 }
 ?>
 </tbody>
 </table>
 <?php } ?>
-<?php if ($membership_users->CurrentAction == "") { ?>
+<?php if ($userlevels->CurrentAction == "") { ?>
 <input type="hidden" name="a_list" id="a_list" value="">
 <?php } ?>
 </div>
@@ -2237,60 +1859,60 @@ $membership_users_list->ListOptions->Render("body", "right", $membership_users_l
 <?php
 
 // Close recordset
-if ($membership_users_list->Recordset)
-	$membership_users_list->Recordset->Close();
+if ($userlevels_list->Recordset)
+	$userlevels_list->Recordset->Close();
 ?>
 <div class="panel-footer ewGridLowerPanel">
-<?php if ($membership_users->CurrentAction <> "gridadd" && $membership_users->CurrentAction <> "gridedit") { ?>
+<?php if ($userlevels->CurrentAction <> "gridadd" && $userlevels->CurrentAction <> "gridedit") { ?>
 <form name="ewPagerForm" class="ewForm form-inline ewPagerForm" action="<?php echo ew_CurrentPage() ?>">
-<?php if (!isset($membership_users_list->Pager)) $membership_users_list->Pager = new cPrevNextPager($membership_users_list->StartRec, $membership_users_list->DisplayRecs, $membership_users_list->TotalRecs) ?>
-<?php if ($membership_users_list->Pager->RecordCount > 0) { ?>
+<?php if (!isset($userlevels_list->Pager)) $userlevels_list->Pager = new cPrevNextPager($userlevels_list->StartRec, $userlevels_list->DisplayRecs, $userlevels_list->TotalRecs) ?>
+<?php if ($userlevels_list->Pager->RecordCount > 0) { ?>
 <div class="ewPager">
 <span><?php echo $Language->Phrase("Page") ?>&nbsp;</span>
 <div class="ewPrevNext"><div class="input-group">
 <div class="input-group-btn">
 <!--first page button-->
-	<?php if ($membership_users_list->Pager->FirstButton->Enabled) { ?>
-	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerFirst") ?>" href="<?php echo $membership_users_list->PageUrl() ?>start=<?php echo $membership_users_list->Pager->FirstButton->Start ?>"><span class="icon-first ewIcon"></span></a>
+	<?php if ($userlevels_list->Pager->FirstButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerFirst") ?>" href="<?php echo $userlevels_list->PageUrl() ?>start=<?php echo $userlevels_list->Pager->FirstButton->Start ?>"><span class="icon-first ewIcon"></span></a>
 	<?php } else { ?>
 	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerFirst") ?>"><span class="icon-first ewIcon"></span></a>
 	<?php } ?>
 <!--previous page button-->
-	<?php if ($membership_users_list->Pager->PrevButton->Enabled) { ?>
-	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerPrevious") ?>" href="<?php echo $membership_users_list->PageUrl() ?>start=<?php echo $membership_users_list->Pager->PrevButton->Start ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php if ($userlevels_list->Pager->PrevButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerPrevious") ?>" href="<?php echo $userlevels_list->PageUrl() ?>start=<?php echo $userlevels_list->Pager->PrevButton->Start ?>"><span class="icon-prev ewIcon"></span></a>
 	<?php } else { ?>
 	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerPrevious") ?>"><span class="icon-prev ewIcon"></span></a>
 	<?php } ?>
 </div>
 <!--current page number-->
-	<input class="form-control input-sm" type="text" name="<?php echo EW_TABLE_PAGE_NO ?>" value="<?php echo $membership_users_list->Pager->CurrentPage ?>">
+	<input class="form-control input-sm" type="text" name="<?php echo EW_TABLE_PAGE_NO ?>" value="<?php echo $userlevels_list->Pager->CurrentPage ?>">
 <div class="input-group-btn">
 <!--next page button-->
-	<?php if ($membership_users_list->Pager->NextButton->Enabled) { ?>
-	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerNext") ?>" href="<?php echo $membership_users_list->PageUrl() ?>start=<?php echo $membership_users_list->Pager->NextButton->Start ?>"><span class="icon-next ewIcon"></span></a>
+	<?php if ($userlevels_list->Pager->NextButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerNext") ?>" href="<?php echo $userlevels_list->PageUrl() ?>start=<?php echo $userlevels_list->Pager->NextButton->Start ?>"><span class="icon-next ewIcon"></span></a>
 	<?php } else { ?>
 	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerNext") ?>"><span class="icon-next ewIcon"></span></a>
 	<?php } ?>
 <!--last page button-->
-	<?php if ($membership_users_list->Pager->LastButton->Enabled) { ?>
-	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerLast") ?>" href="<?php echo $membership_users_list->PageUrl() ?>start=<?php echo $membership_users_list->Pager->LastButton->Start ?>"><span class="icon-last ewIcon"></span></a>
+	<?php if ($userlevels_list->Pager->LastButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerLast") ?>" href="<?php echo $userlevels_list->PageUrl() ?>start=<?php echo $userlevels_list->Pager->LastButton->Start ?>"><span class="icon-last ewIcon"></span></a>
 	<?php } else { ?>
 	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerLast") ?>"><span class="icon-last ewIcon"></span></a>
 	<?php } ?>
 </div>
 </div>
 </div>
-<span>&nbsp;<?php echo $Language->Phrase("of") ?>&nbsp;<?php echo $membership_users_list->Pager->PageCount ?></span>
+<span>&nbsp;<?php echo $Language->Phrase("of") ?>&nbsp;<?php echo $userlevels_list->Pager->PageCount ?></span>
 </div>
 <div class="ewPager ewRec">
-	<span><?php echo $Language->Phrase("Record") ?>&nbsp;<?php echo $membership_users_list->Pager->FromIndex ?>&nbsp;<?php echo $Language->Phrase("To") ?>&nbsp;<?php echo $membership_users_list->Pager->ToIndex ?>&nbsp;<?php echo $Language->Phrase("Of") ?>&nbsp;<?php echo $membership_users_list->Pager->RecordCount ?></span>
+	<span><?php echo $Language->Phrase("Record") ?>&nbsp;<?php echo $userlevels_list->Pager->FromIndex ?>&nbsp;<?php echo $Language->Phrase("To") ?>&nbsp;<?php echo $userlevels_list->Pager->ToIndex ?>&nbsp;<?php echo $Language->Phrase("Of") ?>&nbsp;<?php echo $userlevels_list->Pager->RecordCount ?></span>
 </div>
 <?php } ?>
 </form>
 <?php } ?>
 <div class="ewListOtherOptions">
 <?php
-	foreach ($membership_users_list->OtherOptions as &$option)
+	foreach ($userlevels_list->OtherOptions as &$option)
 		$option->Render("body", "bottom");
 ?>
 </div>
@@ -2298,10 +1920,10 @@ if ($membership_users_list->Recordset)
 </div>
 </div>
 <?php } ?>
-<?php if ($membership_users_list->TotalRecs == 0 && $membership_users->CurrentAction == "") { // Show other options ?>
+<?php if ($userlevels_list->TotalRecs == 0 && $userlevels->CurrentAction == "") { // Show other options ?>
 <div class="ewListOtherOptions">
 <?php
-	foreach ($membership_users_list->OtherOptions as &$option) {
+	foreach ($userlevels_list->OtherOptions as &$option) {
 		$option->ButtonClass = "";
 		$option->Render("body", "");
 	}
@@ -2310,12 +1932,12 @@ if ($membership_users_list->Recordset)
 <div class="clearfix"></div>
 <?php } ?>
 <script type="text/javascript">
-fmembership_userslistsrch.Init();
-fmembership_userslistsrch.FilterList = <?php echo $membership_users_list->GetFilterList() ?>;
-fmembership_userslist.Init();
+fuserlevelslistsrch.Init();
+fuserlevelslistsrch.FilterList = <?php echo $userlevels_list->GetFilterList() ?>;
+fuserlevelslist.Init();
 </script>
 <?php
-$membership_users_list->ShowPageFooter();
+$userlevels_list->ShowPageFooter();
 if (EW_DEBUG_ENABLED)
 	echo ew_DebugMsg();
 ?>
@@ -2327,5 +1949,5 @@ if (EW_DEBUG_ENABLED)
 </script>
 <?php include_once "footer.php" ?>
 <?php
-$membership_users_list->Page_Terminate();
+$userlevels_list->Page_Terminate();
 ?>

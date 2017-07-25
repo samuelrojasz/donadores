@@ -29,7 +29,7 @@ define("EW_CONFIG_FILE_FOLDER", EW_PROJECT_NAME . "", TRUE); // Config file name
 define("EW_PROJECT_ID", "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}", TRUE); // Project ID (GUID)
 $EW_RELATED_PROJECT_ID = "";
 $EW_RELATED_LANGUAGE_FOLDER = "";
-define("EW_RANDOM_KEY", '678C9paj359f03gV', TRUE); // Random key for encryption
+define("EW_RANDOM_KEY", '1wuxwRWv4TKqyT7y', TRUE); // Random key for encryption
 define("EW_PROJECT_STYLESHEET_FILENAME", "phpcss/donadores.css", TRUE); // Project stylesheet file name
 define("EW_CHARSET", "utf-8", TRUE); // Project charset
 define("EW_EMAIL_CHARSET", EW_CHARSET, TRUE); // Email charset
@@ -271,7 +271,7 @@ define("EW_USER_ID_ALLOW", 104, TRUE);
 define("EW_USER_TABLE_DBID", "DB", TRUE);
 define("EW_USER_TABLE", "`membership_users`", TRUE);
 define("EW_USER_NAME_FILTER", "(`email` = '%u')", TRUE);
-define("EW_USER_ID_FILTER", "", TRUE);
+define("EW_USER_ID_FILTER", "(`memberID` = '%u')", TRUE);
 define("EW_USER_EMAIL_FILTER", "", TRUE);
 define("EW_USER_ACTIVATE_FILTER", "", TRUE);
 

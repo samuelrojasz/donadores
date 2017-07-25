@@ -262,6 +262,10 @@ class cdefault {
 		$this->Page_Terminate("hospitaislist.php"); // Exit and go to default page
 		if ($Security->AllowList(CurrentProjectID() . 'membership_users'))
 			$this->Page_Terminate("membership_userslist.php");
+		if ($Security->AllowList(CurrentProjectID() . 'userlevelpermissions'))
+			$this->Page_Terminate("userlevelpermissionslist.php");
+		if ($Security->AllowList(CurrentProjectID() . 'userlevels'))
+			$this->Page_Terminate("userlevelslist.php");
 		if ($Security->IsLoggedIn()) {
 			$this->setFailureMessage($Language->Phrase("NoPermission") . "<br><br><a href=\"logout.php\">" . $Language->Phrase("BackToLogin") . "</a>");
 		} else {

@@ -268,6 +268,15 @@ class cmembership_users_add extends cmembership_users {
 			else
 				$this->Page_Terminate(ew_GetUrl("login.php"));
 		}
+		if ($Security->IsLoggedIn()) {
+			$Security->UserID_Loading();
+			$Security->LoadUserID();
+			$Security->UserID_Loaded();
+			if (strval($Security->CurrentUserID()) == "") {
+				$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
+				$this->Page_Terminate(ew_GetUrl("membership_userslist.php"));
+			}
+		}
 
 		// Create form object
 		$objForm = new cFormObj();
@@ -559,6 +568,15 @@ class cmembership_users_add extends cmembership_users {
 			$this->LoadRowValues($rs); // Load row values
 			$rs->Close();
 		}
+
+		// Check if valid user id
+		if ($res) {
+			$res = $this->ShowOptionLink('add');
+			if (!$res) {
+				$sUserIdMsg = $Language->Phrase("NoPermission");
+				$this->setFailureMessage($sUserIdMsg);
+			}
+		}
 		return $res;
 	}
 
@@ -816,8 +834,31 @@ class cmembership_users_add extends cmembership_users {
 			// memberID
 			$this->memberID->EditAttrs["class"] = "form-control";
 			$this->memberID->EditCustomAttributes = "";
+			if (!$Security->IsAdmin() && $Security->IsLoggedIn() && !$this->UserIDAllow("add")) { // Non system admin
+			$sFilterWrk = "";
+			$sFilterWrk = $GLOBALS["membership_users"]->AddUserIDFilter("");
+			switch (@$gsLanguage) {
+				case "es":
+					$sSqlWrk = "SELECT `memberID`, `memberID` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `membership_users`";
+					$sWhereWrk = "";
+					break;
+				default:
+					$sSqlWrk = "SELECT `memberID`, `memberID` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `membership_users`";
+					$sWhereWrk = "";
+					break;
+			}
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->memberID, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			array_unshift($arwrk, array("", $Language->Phrase("PleaseSelect"), "", "", "", "", "", "", ""));
+			$this->memberID->EditValue = $arwrk;
+			} else {
 			$this->memberID->EditValue = ew_HtmlEncode($this->memberID->CurrentValue);
 			$this->memberID->PlaceHolder = ew_RemoveHtml($this->memberID->FldCaption());
+			}
 
 			// passMD5
 			$this->passMD5->EditAttrs["class"] = "form-control ewPasswordStrength";
@@ -883,8 +924,31 @@ class cmembership_users_add extends cmembership_users {
 			// custom1
 			$this->custom1->EditAttrs["class"] = "form-control";
 			$this->custom1->EditCustomAttributes = "";
+			if (!$Security->IsAdmin() && $Security->IsLoggedIn()) { // Non system admin
+			$sFilterWrk = "";
+			$sFilterWrk = $GLOBALS["membership_users"]->AddParentUserIDFilter("", "");
+			switch (@$gsLanguage) {
+				case "es":
+					$sSqlWrk = "SELECT `memberID`, `memberID` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `membership_users`";
+					$sWhereWrk = "";
+					break;
+				default:
+					$sSqlWrk = "SELECT `memberID`, `memberID` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `membership_users`";
+					$sWhereWrk = "";
+					break;
+			}
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->custom1, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			array_unshift($arwrk, array("", $Language->Phrase("PleaseSelect"), "", "", "", "", "", "", ""));
+			$this->custom1->EditValue = $arwrk;
+			} else {
 			$this->custom1->EditValue = ew_HtmlEncode($this->custom1->CurrentValue);
 			$this->custom1->PlaceHolder = ew_RemoveHtml($this->custom1->FldCaption());
+			}
 
 			// custom2
 			$this->custom2->EditAttrs["class"] = "form-control";
@@ -1018,6 +1082,30 @@ class cmembership_users_add extends cmembership_users {
 	// Add record
 	function AddRow($rsold = NULL) {
 		global $Language, $Security;
+
+		// Check if valid User ID
+		$bValidUser = FALSE;
+		if ($Security->CurrentUserID() <> "" && !$Security->IsAdmin()) { // Non system admin
+			$bValidUser = $Security->IsValidUserID($this->memberID->CurrentValue);
+			if (!$bValidUser) {
+				$sUserIdMsg = str_replace("%c", CurrentUserID(), $Language->Phrase("UnAuthorizedUserID"));
+				$sUserIdMsg = str_replace("%u", $this->memberID->CurrentValue, $sUserIdMsg);
+				$this->setFailureMessage($sUserIdMsg);
+				return FALSE;
+			}
+		}
+
+		// Check if valid parent user id
+		$bValidParentUser = FALSE;
+		if ($Security->CurrentUserID() <> "" && !$Security->IsAdmin()) { // Non system admin
+			$bValidParentUser = $Security->IsValidUserID($this->custom1->CurrentValue);
+			if (!$bValidParentUser) {
+				$sParentUserIdMsg = str_replace("%c", CurrentUserID(), $Language->Phrase("UnAuthorizedParentUserID"));
+				$sParentUserIdMsg = str_replace("%p", $this->custom1->CurrentValue, $sParentUserIdMsg);
+				$this->setFailureMessage($sParentUserIdMsg);
+				return FALSE;
+			}
+		}
 		$conn = &$this->Connection();
 
 		// Load db values from rsold
@@ -1116,6 +1204,14 @@ class cmembership_users_add extends cmembership_users {
 			$this->Row_Inserted($rs, $rsnew);
 		}
 		return $AddRow;
+	}
+
+	// Show link optionally based on User ID
+	function ShowOptionLink($id = "") {
+		global $Security;
+		if ($Security->IsLoggedIn() && !$Security->IsAdmin() && !$this->UserIDAllow($id))
+			return $Security->IsValidUserID($this->memberID->CurrentValue);
+		return TRUE;
 	}
 
 	// Set up Breadcrumb
@@ -1317,9 +1413,37 @@ $membership_users_add->ShowMessage();
 	<div id="r_memberID" class="form-group">
 		<label id="elh_membership_users_memberID" for="x_memberID" class="col-sm-2 control-label ewLabel"><?php echo $membership_users->memberID->FldCaption() ?><?php echo $Language->Phrase("FieldRequiredIndicator") ?></label>
 		<div class="col-sm-10"><div<?php echo $membership_users->memberID->CellAttributes() ?>>
+<?php if (!$Security->IsAdmin() && $Security->IsLoggedIn() && !$membership_users->UserIDAllow("add")) { // Non system admin ?>
+<span id="el_membership_users_memberID">
+<select data-table="membership_users" data-field="x_memberID" data-value-separator="<?php echo ew_HtmlEncode(is_array($membership_users->memberID->DisplayValueSeparator) ? json_encode($membership_users->memberID->DisplayValueSeparator) : $membership_users->memberID->DisplayValueSeparator) ?>" id="x_memberID" name="x_memberID"<?php echo $membership_users->memberID->EditAttributes() ?>>
+<?php
+if (is_array($membership_users->memberID->EditValue)) {
+	$arwrk = $membership_users->memberID->EditValue;
+	$rowswrk = count($arwrk);
+	$emptywrk = TRUE;
+	for ($rowcntwrk = 0; $rowcntwrk < $rowswrk; $rowcntwrk++) {
+		$selwrk = ew_SameStr($membership_users->memberID->CurrentValue, $arwrk[$rowcntwrk][0]) ? " selected" : "";
+		if ($selwrk <> "") $emptywrk = FALSE;		
+?>
+<option value="<?php echo ew_HtmlEncode($arwrk[$rowcntwrk][0]) ?>"<?php echo $selwrk ?>>
+<?php echo $membership_users->memberID->DisplayValue($arwrk[$rowcntwrk]) ?>
+</option>
+<?php
+	}
+	if ($emptywrk && strval($membership_users->memberID->CurrentValue) <> "") {
+?>
+<option value="<?php echo ew_HtmlEncode($membership_users->memberID->CurrentValue) ?>" selected><?php echo $membership_users->memberID->CurrentValue ?></option>
+<?php
+    }
+}
+?>
+</select>
+</span>
+<?php } else { ?>
 <span id="el_membership_users_memberID">
 <input type="text" data-table="membership_users" data-field="x_memberID" name="x_memberID" id="x_memberID" size="30" maxlength="20" placeholder="<?php echo ew_HtmlEncode($membership_users->memberID->getPlaceHolder()) ?>" value="<?php echo $membership_users->memberID->EditValue ?>"<?php echo $membership_users->memberID->EditAttributes() ?>>
 </span>
+<?php } ?>
 <?php echo $membership_users->memberID->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
@@ -1443,9 +1567,37 @@ if ($sSqlWrk <> "") $membership_users->groupID->LookupFilters["s"] .= $sSqlWrk;
 	<div id="r_custom1" class="form-group">
 		<label id="elh_membership_users_custom1" for="x_custom1" class="col-sm-2 control-label ewLabel"><?php echo $membership_users->custom1->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $membership_users->custom1->CellAttributes() ?>>
+<?php if (!$Security->IsAdmin() && $Security->IsLoggedIn()) { // Non system admin ?>
+<span id="el_membership_users_custom1">
+<select data-table="membership_users" data-field="x_custom1" data-value-separator="<?php echo ew_HtmlEncode(is_array($membership_users->custom1->DisplayValueSeparator) ? json_encode($membership_users->custom1->DisplayValueSeparator) : $membership_users->custom1->DisplayValueSeparator) ?>" id="x_custom1" name="x_custom1"<?php echo $membership_users->custom1->EditAttributes() ?>>
+<?php
+if (is_array($membership_users->custom1->EditValue)) {
+	$arwrk = $membership_users->custom1->EditValue;
+	$rowswrk = count($arwrk);
+	$emptywrk = TRUE;
+	for ($rowcntwrk = 0; $rowcntwrk < $rowswrk; $rowcntwrk++) {
+		$selwrk = ew_SameStr($membership_users->custom1->CurrentValue, $arwrk[$rowcntwrk][0]) ? " selected" : "";
+		if ($selwrk <> "") $emptywrk = FALSE;		
+?>
+<option value="<?php echo ew_HtmlEncode($arwrk[$rowcntwrk][0]) ?>"<?php echo $selwrk ?>>
+<?php echo $membership_users->custom1->DisplayValue($arwrk[$rowcntwrk]) ?>
+</option>
+<?php
+	}
+	if ($emptywrk && strval($membership_users->custom1->CurrentValue) <> "") {
+?>
+<option value="<?php echo ew_HtmlEncode($membership_users->custom1->CurrentValue) ?>" selected><?php echo $membership_users->custom1->CurrentValue ?></option>
+<?php
+    }
+}
+?>
+</select>
+</span>
+<?php } else { ?>
 <span id="el_membership_users_custom1">
 <textarea data-table="membership_users" data-field="x_custom1" name="x_custom1" id="x_custom1" cols="35" rows="4" placeholder="<?php echo ew_HtmlEncode($membership_users->custom1->getPlaceHolder()) ?>"<?php echo $membership_users->custom1->EditAttributes() ?>><?php echo $membership_users->custom1->EditValue ?></textarea>
 </span>
+<?php } ?>
 <?php echo $membership_users->custom1->CustomMsg ?></div></div>
 	</div>
 <?php } ?>

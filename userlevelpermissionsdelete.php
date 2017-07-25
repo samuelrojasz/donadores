@@ -5,7 +5,7 @@ ob_start(); // Turn on output buffering
 <?php include_once "ewcfg12.php" ?>
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql12.php") ?>
 <?php include_once "phpfn12.php" ?>
-<?php include_once "hospitaisinfo.php" ?>
+<?php include_once "userlevelpermissionsinfo.php" ?>
 <?php include_once "membership_usersinfo.php" ?>
 <?php include_once "userfn12.php" ?>
 <?php
@@ -14,9 +14,9 @@ ob_start(); // Turn on output buffering
 // Page class
 //
 
-$hospitais_delete = NULL; // Initialize page object first
+$userlevelpermissions_delete = NULL; // Initialize page object first
 
-class chospitais_delete extends chospitais {
+class cuserlevelpermissions_delete extends cuserlevelpermissions {
 
 	// Page ID
 	var $PageID = 'delete';
@@ -25,10 +25,10 @@ class chospitais_delete extends chospitais {
 	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Table name
-	var $TableName = 'hospitais';
+	var $TableName = 'userlevelpermissions';
 
 	// Page object name
-	var $PageObjName = 'hospitais_delete';
+	var $PageObjName = 'userlevelpermissions_delete';
 
 	// Page name
 	function PageName() {
@@ -222,10 +222,10 @@ class chospitais_delete extends chospitais {
 		// Parent constuctor
 		parent::__construct();
 
-		// Table object (hospitais)
-		if (!isset($GLOBALS["hospitais"]) || get_class($GLOBALS["hospitais"]) == "chospitais") {
-			$GLOBALS["hospitais"] = &$this;
-			$GLOBALS["Table"] = &$GLOBALS["hospitais"];
+		// Table object (userlevelpermissions)
+		if (!isset($GLOBALS["userlevelpermissions"]) || get_class($GLOBALS["userlevelpermissions"]) == "cuserlevelpermissions") {
+			$GLOBALS["userlevelpermissions"] = &$this;
+			$GLOBALS["Table"] = &$GLOBALS["userlevelpermissions"];
 		}
 
 		// Table object (membership_users)
@@ -237,7 +237,7 @@ class chospitais_delete extends chospitais {
 
 		// Table name (for backward compatibility)
 		if (!defined("EW_TABLE_NAME"))
-			define("EW_TABLE_NAME", 'hospitais', TRUE);
+			define("EW_TABLE_NAME", 'userlevelpermissions', TRUE);
 
 		// Start timer
 		if (!isset($GLOBALS["gTimer"])) $GLOBALS["gTimer"] = new cTimer();
@@ -264,13 +264,9 @@ class chospitais_delete extends chospitais {
 		if ($Security->IsLoggedIn()) $Security->TablePermission_Loading();
 		$Security->LoadCurrentUserLevel($this->ProjectID . $this->TableName);
 		if ($Security->IsLoggedIn()) $Security->TablePermission_Loaded();
-		if (!$Security->CanDelete()) {
+		if (!$Security->CanAdmin()) {
 			$Security->SaveLastUrl();
-			$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
-			if ($Security->CanList())
-				$this->Page_Terminate(ew_GetUrl("hospitaislist.php"));
-			else
-				$this->Page_Terminate(ew_GetUrl("login.php"));
+			$this->Page_Terminate(ew_GetUrl("login.php"));
 		}
 		if ($Security->IsLoggedIn()) {
 			$Security->UserID_Loading();
@@ -278,7 +274,6 @@ class chospitais_delete extends chospitais {
 			$Security->UserID_Loaded();
 		}
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->Id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 
 		// Global Page Loading event (in userfn*.php)
 		Page_Loading();
@@ -310,13 +305,13 @@ class chospitais_delete extends chospitais {
 		Page_Unloaded();
 
 		// Export
-		global $EW_EXPORT, $hospitais;
+		global $EW_EXPORT, $userlevelpermissions;
 		if ($this->CustomExport <> "" && $this->CustomExport == $this->Export && array_key_exists($this->CustomExport, $EW_EXPORT)) {
 				$sContent = ob_get_contents();
 			if ($gsExportFile == "") $gsExportFile = $this->TableVar;
 			$class = $EW_EXPORT[$this->CustomExport];
 			if (class_exists($class)) {
-				$doc = new $class($hospitais);
+				$doc = new $class($userlevelpermissions);
 				$doc->Text = $sContent;
 				if ($this->Export == "email")
 					echo $this->ExportEmail($doc->Text);
@@ -362,10 +357,10 @@ class chospitais_delete extends chospitais {
 		$this->RecKeys = $this->GetRecordKeys(); // Load record keys
 		$sFilter = $this->GetKeyFilter();
 		if ($sFilter == "")
-			$this->Page_Terminate("hospitaislist.php"); // Prevent SQL injection, return to list
+			$this->Page_Terminate("userlevelpermissionslist.php"); // Prevent SQL injection, return to list
 
 		// Set up filter (SQL WHHERE clause) and get return SQL
-		// SQL constructor in hospitais class, hospitaisinfo.php
+		// SQL constructor in userlevelpermissions class, userlevelpermissionsinfo.php
 
 		$this->CurrentFilter = $sFilter;
 
@@ -441,26 +436,18 @@ class chospitais_delete extends chospitais {
 		// Call Row Selected event
 		$row = &$rs->fields;
 		$this->Row_Selected($row);
-		$this->Id->setDbValue($rs->fields('Id'));
-		$this->nome->setDbValue($rs->fields('nome'));
-		$this->endereco->setDbValue($rs->fields('endereco'));
-		$this->telefone->setDbValue($rs->fields('telefone'));
-		$this->celular->setDbValue($rs->fields('celular'));
-		$this->estado->setDbValue($rs->fields('estado'));
-		$this->cidade->setDbValue($rs->fields('cidade'));
+		$this->userlevelid->setDbValue($rs->fields('userlevelid'));
+		$this->_tablename->setDbValue($rs->fields('tablename'));
+		$this->permission->setDbValue($rs->fields('permission'));
 	}
 
 	// Load DbValue from recordset
 	function LoadDbValues(&$rs) {
 		if (!$rs || !is_array($rs) && $rs->EOF) return;
 		$row = is_array($rs) ? $rs : $rs->fields;
-		$this->Id->DbValue = $row['Id'];
-		$this->nome->DbValue = $row['nome'];
-		$this->endereco->DbValue = $row['endereco'];
-		$this->telefone->DbValue = $row['telefone'];
-		$this->celular->DbValue = $row['celular'];
-		$this->estado->DbValue = $row['estado'];
-		$this->cidade->DbValue = $row['cidade'];
+		$this->userlevelid->DbValue = $row['userlevelid'];
+		$this->_tablename->DbValue = $row['tablename'];
+		$this->permission->DbValue = $row['permission'];
 	}
 
 	// Render row values based on field settings
@@ -473,78 +460,38 @@ class chospitais_delete extends chospitais {
 		$this->Row_Rendering();
 
 		// Common render codes for all row types
-		// Id
-		// nome
-		// endereco
-		// telefone
-		// celular
-		// estado
-		// cidade
+		// userlevelid
+		// tablename
+		// permission
 
 		if ($this->RowType == EW_ROWTYPE_VIEW) { // View row
 
-		// Id
-		$this->Id->ViewValue = $this->Id->CurrentValue;
-		$this->Id->ViewCustomAttributes = "";
+		// userlevelid
+		$this->userlevelid->ViewValue = $this->userlevelid->CurrentValue;
+		$this->userlevelid->ViewCustomAttributes = "";
 
-		// nome
-		$this->nome->ViewValue = $this->nome->CurrentValue;
-		$this->nome->ViewCustomAttributes = "";
+		// tablename
+		$this->_tablename->ViewValue = $this->_tablename->CurrentValue;
+		$this->_tablename->ViewCustomAttributes = "";
 
-		// endereco
-		$this->endereco->ViewValue = $this->endereco->CurrentValue;
-		$this->endereco->ViewCustomAttributes = "";
+		// permission
+		$this->permission->ViewValue = $this->permission->CurrentValue;
+		$this->permission->ViewCustomAttributes = "";
 
-		// telefone
-		$this->telefone->ViewValue = $this->telefone->CurrentValue;
-		$this->telefone->ViewCustomAttributes = "";
+			// userlevelid
+			$this->userlevelid->LinkCustomAttributes = "";
+			$this->userlevelid->HrefValue = "";
+			$this->userlevelid->TooltipValue = "";
 
-		// celular
-		$this->celular->ViewValue = $this->celular->CurrentValue;
-		$this->celular->ViewCustomAttributes = "";
+			// tablename
+			$this->_tablename->LinkCustomAttributes = "";
+			$this->_tablename->HrefValue = "";
+			$this->_tablename->TooltipValue = "";
 
-		// estado
-		$this->estado->ViewValue = $this->estado->CurrentValue;
-		$this->estado->ViewCustomAttributes = "";
-
-		// cidade
-		$this->cidade->ViewValue = $this->cidade->CurrentValue;
-		$this->cidade->ViewCustomAttributes = "";
-
-			// Id
-			$this->Id->LinkCustomAttributes = "";
-			$this->Id->HrefValue = "";
-			$this->Id->TooltipValue = "";
-
-			// nome
-			$this->nome->LinkCustomAttributes = "";
-			$this->nome->HrefValue = "";
-			$this->nome->TooltipValue = "";
-
-			// endereco
-			$this->endereco->LinkCustomAttributes = "";
-			$this->endereco->HrefValue = "";
-			$this->endereco->TooltipValue = "";
-
-			// telefone
-			$this->telefone->LinkCustomAttributes = "";
-			$this->telefone->HrefValue = "";
-			$this->telefone->TooltipValue = "";
-
-			// celular
-			$this->celular->LinkCustomAttributes = "";
-			$this->celular->HrefValue = "";
-			$this->celular->TooltipValue = "";
-
-			// estado
-			$this->estado->LinkCustomAttributes = "";
-			$this->estado->HrefValue = "";
-			$this->estado->TooltipValue = "";
-
-			// cidade
-			$this->cidade->LinkCustomAttributes = "";
-			$this->cidade->HrefValue = "";
-			$this->cidade->TooltipValue = "";
+			// permission
+			$this->permission->LinkCustomAttributes = "";
+			$this->permission->HrefValue = "";
+			$this->permission->TooltipValue = "";
 		}
 
 		// Call Row Rendered event
@@ -598,7 +545,9 @@ class chospitais_delete extends chospitais {
 			foreach ($rsold as $row) {
 				$sThisKey = "";
 				if ($sThisKey <> "") $sThisKey .= $GLOBALS["EW_COMPOSITE_KEY_SEPARATOR"];
-				$sThisKey .= $row['Id'];
+				$sThisKey .= $row['userlevelid'];
+				if ($sThisKey <> "") $sThisKey .= $GLOBALS["EW_COMPOSITE_KEY_SEPARATOR"];
+				$sThisKey .= $row['tablename'];
 				$conn->raiseErrorFn = $GLOBALS["EW_ERROR_FN"];
 				$DeleteRows = $this->Delete($row); // Delete
 				$conn->raiseErrorFn = '';
@@ -640,7 +589,7 @@ class chospitais_delete extends chospitais {
 		global $Breadcrumb, $Language;
 		$Breadcrumb = new cBreadcrumb();
 		$url = substr(ew_CurrentUrl(), strrpos(ew_CurrentUrl(), "/")+1);
-		$Breadcrumb->Add("list", $this->TableVar, "hospitaislist.php", "", $this->TableVar, TRUE);
+		$Breadcrumb->Add("list", $this->TableVar, "userlevelpermissionslist.php", "", $this->TableVar, TRUE);
 		$PageId = "delete";
 		$Breadcrumb->Add("delete", $PageId, $url);
 	}
@@ -710,29 +659,29 @@ class chospitais_delete extends chospitais {
 <?php
 
 // Create page object
-if (!isset($hospitais_delete)) $hospitais_delete = new chospitais_delete();
+if (!isset($userlevelpermissions_delete)) $userlevelpermissions_delete = new cuserlevelpermissions_delete();
 
 // Page init
-$hospitais_delete->Page_Init();
+$userlevelpermissions_delete->Page_Init();
 
 // Page main
-$hospitais_delete->Page_Main();
+$userlevelpermissions_delete->Page_Main();
 
 // Global Page Rendering event (in userfn*.php)
 Page_Rendering();
 
 // Page Rendering event
-$hospitais_delete->Page_Render();
+$userlevelpermissions_delete->Page_Render();
 ?>
 <?php include_once "header.php" ?>
 <script type="text/javascript">
 
 // Form object
 var CurrentPageID = EW_PAGE_ID = "delete";
-var CurrentForm = fhospitaisdelete = new ew_Form("fhospitaisdelete", "delete");
+var CurrentForm = fuserlevelpermissionsdelete = new ew_Form("fuserlevelpermissionsdelete", "delete");
 
 // Form_CustomValidate event
-fhospitaisdelete.Form_CustomValidate = 
+fuserlevelpermissionsdelete.Form_CustomValidate = 
  function(fobj) { // DO NOT CHANGE THIS LINE!
 
  	// Your custom validation code here, return false if invalid. 
@@ -741,9 +690,9 @@ fhospitaisdelete.Form_CustomValidate =
 
 // Use JavaScript validation or not
 <?php if (EW_CLIENT_VALIDATE) { ?>
-fhospitaisdelete.ValidateRequired = true;
+fuserlevelpermissionsdelete.ValidateRequired = true;
 <?php } else { ?>
-fhospitaisdelete.ValidateRequired = false; 
+fuserlevelpermissionsdelete.ValidateRequired = false; 
 <?php } ?>
 
 // Dynamic selection lists
@@ -757,12 +706,12 @@ fhospitaisdelete.ValidateRequired = false;
 <?php
 
 // Load records for display
-if ($hospitais_delete->Recordset = $hospitais_delete->LoadRecordset())
-	$hospitais_deleteTotalRecs = $hospitais_delete->Recordset->RecordCount(); // Get record count
-if ($hospitais_deleteTotalRecs <= 0) { // No record found, exit
-	if ($hospitais_delete->Recordset)
-		$hospitais_delete->Recordset->Close();
-	$hospitais_delete->Page_Terminate("hospitaislist.php"); // Return to list
+if ($userlevelpermissions_delete->Recordset = $userlevelpermissions_delete->LoadRecordset())
+	$userlevelpermissions_deleteTotalRecs = $userlevelpermissions_delete->Recordset->RecordCount(); // Get record count
+if ($userlevelpermissions_deleteTotalRecs <= 0) { // No record found, exit
+	if ($userlevelpermissions_delete->Recordset)
+		$userlevelpermissions_delete->Recordset->Close();
+	$userlevelpermissions_delete->Page_Terminate("userlevelpermissionslist.php"); // Return to list
 }
 ?>
 <div class="ewToolbar">
@@ -770,129 +719,85 @@ if ($hospitais_deleteTotalRecs <= 0) { // No record found, exit
 <?php echo $Language->SelectionForm(); ?>
 <div class="clearfix"></div>
 </div>
-<?php $hospitais_delete->ShowPageHeader(); ?>
+<?php $userlevelpermissions_delete->ShowPageHeader(); ?>
 <?php
-$hospitais_delete->ShowMessage();
+$userlevelpermissions_delete->ShowMessage();
 ?>
-<form name="fhospitaisdelete" id="fhospitaisdelete" class="form-inline ewForm ewDeleteForm" action="<?php echo ew_CurrentPage() ?>" method="post">
-<?php if ($hospitais_delete->CheckToken) { ?>
-<input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $hospitais_delete->Token ?>">
+<form name="fuserlevelpermissionsdelete" id="fuserlevelpermissionsdelete" class="form-inline ewForm ewDeleteForm" action="<?php echo ew_CurrentPage() ?>" method="post">
+<?php if ($userlevelpermissions_delete->CheckToken) { ?>
+<input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $userlevelpermissions_delete->Token ?>">
 <?php } ?>
-<input type="hidden" name="t" value="hospitais">
+<input type="hidden" name="t" value="userlevelpermissions">
 <input type="hidden" name="a_delete" id="a_delete" value="D">
-<?php foreach ($hospitais_delete->RecKeys as $key) { ?>
+<?php foreach ($userlevelpermissions_delete->RecKeys as $key) { ?>
 <?php $keyvalue = is_array($key) ? implode($EW_COMPOSITE_KEY_SEPARATOR, $key) : $key; ?>
 <input type="hidden" name="key_m[]" value="<?php echo ew_HtmlEncode($keyvalue) ?>">
 <?php } ?>
 <div class="ewGrid">
 <div class="<?php if (ew_IsResponsiveLayout()) { echo "table-responsive "; } ?>ewGridMiddlePanel">
 <table class="table ewTable">
-<?php echo $hospitais->TableCustomInnerHtml ?>
+<?php echo $userlevelpermissions->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($hospitais->Id->Visible) { // Id ?>
-		<th><span id="elh_hospitais_Id" class="hospitais_Id"><?php echo $hospitais->Id->FldCaption() ?></span></th>
+<?php if ($userlevelpermissions->userlevelid->Visible) { // userlevelid ?>
+		<th><span id="elh_userlevelpermissions_userlevelid" class="userlevelpermissions_userlevelid"><?php echo $userlevelpermissions->userlevelid->FldCaption() ?></span></th>
 <?php } ?>
-<?php if ($hospitais->nome->Visible) { // nome ?>
-		<th><span id="elh_hospitais_nome" class="hospitais_nome"><?php echo $hospitais->nome->FldCaption() ?></span></th>
+<?php if ($userlevelpermissions->_tablename->Visible) { // tablename ?>
+		<th><span id="elh_userlevelpermissions__tablename" class="userlevelpermissions__tablename"><?php echo $userlevelpermissions->_tablename->FldCaption() ?></span></th>
 <?php } ?>
-<?php if ($hospitais->endereco->Visible) { // endereco ?>
-		<th><span id="elh_hospitais_endereco" class="hospitais_endereco"><?php echo $hospitais->endereco->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($hospitais->telefone->Visible) { // telefone ?>
-		<th><span id="elh_hospitais_telefone" class="hospitais_telefone"><?php echo $hospitais->telefone->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($hospitais->celular->Visible) { // celular ?>
-		<th><span id="elh_hospitais_celular" class="hospitais_celular"><?php echo $hospitais->celular->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($hospitais->estado->Visible) { // estado ?>
-		<th><span id="elh_hospitais_estado" class="hospitais_estado"><?php echo $hospitais->estado->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($hospitais->cidade->Visible) { // cidade ?>
-		<th><span id="elh_hospitais_cidade" class="hospitais_cidade"><?php echo $hospitais->cidade->FldCaption() ?></span></th>
+<?php if ($userlevelpermissions->permission->Visible) { // permission ?>
+		<th><span id="elh_userlevelpermissions_permission" class="userlevelpermissions_permission"><?php echo $userlevelpermissions->permission->FldCaption() ?></span></th>
 <?php } ?>
 	</tr>
 	</thead>
 	<tbody>
 <?php
-$hospitais_delete->RecCnt = 0;
+$userlevelpermissions_delete->RecCnt = 0;
 $i = 0;
-while (!$hospitais_delete->Recordset->EOF) {
-	$hospitais_delete->RecCnt++;
-	$hospitais_delete->RowCnt++;
+while (!$userlevelpermissions_delete->Recordset->EOF) {
+	$userlevelpermissions_delete->RecCnt++;
+	$userlevelpermissions_delete->RowCnt++;
 
 	// Set row properties
-	$hospitais->ResetAttrs();
-	$hospitais->RowType = EW_ROWTYPE_VIEW; // View
+	$userlevelpermissions->ResetAttrs();
+	$userlevelpermissions->RowType = EW_ROWTYPE_VIEW; // View
 
 	// Get the field contents
-	$hospitais_delete->LoadRowValues($hospitais_delete->Recordset);
+	$userlevelpermissions_delete->LoadRowValues($userlevelpermissions_delete->Recordset);
 
 	// Render row
-	$hospitais_delete->RenderRow();
+	$userlevelpermissions_delete->RenderRow();
 ?>
-	<tr<?php echo $hospitais->RowAttributes() ?>>
-<?php if ($hospitais->Id->Visible) { // Id ?>
-		<td<?php echo $hospitais->Id->CellAttributes() ?>>
-<span id="el<?php echo $hospitais_delete->RowCnt ?>_hospitais_Id" class="hospitais_Id">
-<span<?php echo $hospitais->Id->ViewAttributes() ?>>
-<?php echo $hospitais->Id->ListViewValue() ?></span>
+	<tr<?php echo $userlevelpermissions->RowAttributes() ?>>
+<?php if ($userlevelpermissions->userlevelid->Visible) { // userlevelid ?>
+		<td<?php echo $userlevelpermissions->userlevelid->CellAttributes() ?>>
+<span id="el<?php echo $userlevelpermissions_delete->RowCnt ?>_userlevelpermissions_userlevelid" class="userlevelpermissions_userlevelid">
+<span<?php echo $userlevelpermissions->userlevelid->ViewAttributes() ?>>
+<?php echo $userlevelpermissions->userlevelid->ListViewValue() ?></span>
 </span>
 </td>
 <?php } ?>
-<?php if ($hospitais->nome->Visible) { // nome ?>
-		<td<?php echo $hospitais->nome->CellAttributes() ?>>
-<span id="el<?php echo $hospitais_delete->RowCnt ?>_hospitais_nome" class="hospitais_nome">
-<span<?php echo $hospitais->nome->ViewAttributes() ?>>
-<?php echo $hospitais->nome->ListViewValue() ?></span>
+<?php if ($userlevelpermissions->_tablename->Visible) { // tablename ?>
+		<td<?php echo $userlevelpermissions->_tablename->CellAttributes() ?>>
+<span id="el<?php echo $userlevelpermissions_delete->RowCnt ?>_userlevelpermissions__tablename" class="userlevelpermissions__tablename">
+<span<?php echo $userlevelpermissions->_tablename->ViewAttributes() ?>>
+<?php echo $userlevelpermissions->_tablename->ListViewValue() ?></span>
 </span>
 </td>
 <?php } ?>
-<?php if ($hospitais->endereco->Visible) { // endereco ?>
-		<td<?php echo $hospitais->endereco->CellAttributes() ?>>
-<span id="el<?php echo $hospitais_delete->RowCnt ?>_hospitais_endereco" class="hospitais_endereco">
-<span<?php echo $hospitais->endereco->ViewAttributes() ?>>
-<?php echo $hospitais->endereco->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($hospitais->telefone->Visible) { // telefone ?>
-		<td<?php echo $hospitais->telefone->CellAttributes() ?>>
-<span id="el<?php echo $hospitais_delete->RowCnt ?>_hospitais_telefone" class="hospitais_telefone">
-<span<?php echo $hospitais->telefone->ViewAttributes() ?>>
-<?php echo $hospitais->telefone->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($hospitais->celular->Visible) { // celular ?>
-		<td<?php echo $hospitais->celular->CellAttributes() ?>>
-<span id="el<?php echo $hospitais_delete->RowCnt ?>_hospitais_celular" class="hospitais_celular">
-<span<?php echo $hospitais->celular->ViewAttributes() ?>>
-<?php echo $hospitais->celular->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($hospitais->estado->Visible) { // estado ?>
-		<td<?php echo $hospitais->estado->CellAttributes() ?>>
-<span id="el<?php echo $hospitais_delete->RowCnt ?>_hospitais_estado" class="hospitais_estado">
-<span<?php echo $hospitais->estado->ViewAttributes() ?>>
-<?php echo $hospitais->estado->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($hospitais->cidade->Visible) { // cidade ?>
-		<td<?php echo $hospitais->cidade->CellAttributes() ?>>
-<span id="el<?php echo $hospitais_delete->RowCnt ?>_hospitais_cidade" class="hospitais_cidade">
-<span<?php echo $hospitais->cidade->ViewAttributes() ?>>
-<?php echo $hospitais->cidade->ListViewValue() ?></span>
+<?php if ($userlevelpermissions->permission->Visible) { // permission ?>
+		<td<?php echo $userlevelpermissions->permission->CellAttributes() ?>>
+<span id="el<?php echo $userlevelpermissions_delete->RowCnt ?>_userlevelpermissions_permission" class="userlevelpermissions_permission">
+<span<?php echo $userlevelpermissions->permission->ViewAttributes() ?>>
+<?php echo $userlevelpermissions->permission->ListViewValue() ?></span>
 </span>
 </td>
 <?php } ?>
 	</tr>
 <?php
-	$hospitais_delete->Recordset->MoveNext();
+	$userlevelpermissions_delete->Recordset->MoveNext();
 }
-$hospitais_delete->Recordset->Close();
+$userlevelpermissions_delete->Recordset->Close();
 ?>
 </tbody>
 </table>
@@ -900,14 +805,14 @@ $hospitais_delete->Recordset->Close();
 </div>
 <div>
 <button class="btn btn-primary ewButton" name="btnAction" id="btnAction" type="submit"><?php echo $Language->Phrase("DeleteBtn") ?></button>
-<button class="btn btn-default ewButton" name="btnCancel" id="btnCancel" type="button" data-href="<?php echo $hospitais_delete->getReturnUrl() ?>"><?php echo $Language->Phrase("CancelBtn") ?></button>
+<button class="btn btn-default ewButton" name="btnCancel" id="btnCancel" type="button" data-href="<?php echo $userlevelpermissions_delete->getReturnUrl() ?>"><?php echo $Language->Phrase("CancelBtn") ?></button>
 </div>
 </form>
 <script type="text/javascript">
-fhospitaisdelete.Init();
+fuserlevelpermissionsdelete.Init();
 </script>
 <?php
-$hospitais_delete->ShowPageFooter();
+$userlevelpermissions_delete->ShowPageFooter();
 if (EW_DEBUG_ENABLED)
 	echo ew_DebugMsg();
 ?>
@@ -919,5 +824,5 @@ if (EW_DEBUG_ENABLED)
 </script>
 <?php include_once "footer.php" ?>
 <?php
-$hospitais_delete->Page_Terminate();
+$userlevelpermissions_delete->Page_Terminate();
 ?>

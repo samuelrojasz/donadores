@@ -268,6 +268,15 @@ class cmembership_users_delete extends cmembership_users {
 			else
 				$this->Page_Terminate(ew_GetUrl("login.php"));
 		}
+		if ($Security->IsLoggedIn()) {
+			$Security->UserID_Loading();
+			$Security->LoadUserID();
+			$Security->UserID_Loaded();
+			if (strval($Security->CurrentUserID()) == "") {
+				$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
+				$this->Page_Terminate(ew_GetUrl("membership_userslist.php"));
+			}
+		}
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
 
 		// Global Page Loading event (in userfn*.php)
@@ -358,6 +367,25 @@ class cmembership_users_delete extends cmembership_users {
 		// SQL constructor in membership_users class, membership_usersinfo.php
 
 		$this->CurrentFilter = $sFilter;
+
+		// Check if valid user id
+		$conn = &$this->Connection();
+		$sql = $this->GetSQL($this->CurrentFilter, "");
+		if ($this->Recordset = ew_LoadRecordset($sql, $conn)) {
+			$res = TRUE;
+			while (!$this->Recordset->EOF) {
+				$this->LoadRowValues($this->Recordset);
+				if (!$this->ShowOptionLink('delete')) {
+					$sUserIdMsg = $Language->Phrase("NoDeletePermission");
+					$this->setFailureMessage($sUserIdMsg);
+					$res = FALSE;
+					break;
+				}
+				$this->Recordset->MoveNext();
+			}
+			$this->Recordset->Close();
+			if (!$res) $this->Page_Terminate("membership_userslist.php"); // Return to list
+		}
 
 		// Get action
 		if (@$_POST["a_delete"] <> "") {
@@ -693,6 +721,14 @@ class cmembership_users_delete extends cmembership_users {
 			}
 		}
 		return $DeleteRows;
+	}
+
+	// Show link optionally based on User ID
+	function ShowOptionLink($id = "") {
+		global $Security;
+		if ($Security->IsLoggedIn() && !$Security->IsAdmin() && !$this->UserIDAllow($id))
+			return $Security->IsValidUserID($this->memberID->CurrentValue);
+		return TRUE;
 	}
 
 	// Set up Breadcrumb

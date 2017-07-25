@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ew-language date="2017/7/19" version="12.0.0" id="es" name="Spanish_MX_v9" desc="Español_v9_Mexico" author="lutgardo@lut.mx">
+<ew-language date="2017/7/25" version="12.0.0" id="es" name="Spanish_MX_v9" desc="Español_v9_Mexico" author="lutgardo@lut.mx">
 	<locale>
 		<phrase id="locale" value=""/><!-- *** setting locale here will override the project locale setting *** -->
 		<phrase id="use_system_locale" value="0"/>
@@ -416,7 +416,7 @@
 		<phrase id="and" value="y"/>
 		<phrase id="or" value="o"/>
 	</global>
-	<project><phrase id="footertext" value="&amp;copy;2017 gerd Ltd. All rights reserved."/>
+	<project><phrase id="footertext" value="&amp;copy;2017 e.World Technology Ltd. All rights reserved."/>
 <menu id="1"><phrase id="menutext" value="dadores de sangre"/>
 </menu>
 <menu id="2"><phrase id="menutext" value="donacoes sangre"/>
@@ -433,9 +433,9 @@
 </menu>
 <menu id="8"><phrase id="menutext" value="membership users"/>
 </menu>
-<menu id="9"><phrase id="menutext" value="userlevelpermissions"/>
+<menu id="9"><phrase id="menutext" value="PERMISOS"/>
 </menu>
-<menu id="10"><phrase id="menutext" value="userlevels"/>
+<menu id="10"><phrase id="menutext" value="ROLES"/>
 </menu>
 <table id="dadores_de_sangre"><phrase id="tblcaption" value="dadores de sangre"/>
 <field id="id"><phrase id="fldcaption" value="Id"/>
@@ -567,48 +567,48 @@
 <field id="groupid"><phrase id="fldcaption" value="group ID"/>
 </field>
 </table>
-<table id="membership_users"><phrase id="tblcaption" value="membership users"/>
-<field id="memberid"><phrase id="fldcaption" value="member ID"/>
+<table id="membership_users"><phrase id="tblcaption" value="USUARIOS"/>
+<field id="memberid"><phrase id="fldcaption" value="ID"/>
 </field>
-<field id="passmd5"><phrase id="fldcaption" value="pass MD5"/>
+<field id="passmd5"><phrase id="fldcaption" value="PASSSWORD"/>
 </field>
-<field id="_email"><phrase id="fldcaption" value="email"/>
+<field id="_email"><phrase id="fldcaption" value="EMAIL"/>
 </field>
-<field id="signupdate"><phrase id="fldcaption" value="signup Date"/>
+<field id="signupdate"><phrase id="fldcaption" value="SIGNUP DATE"/>
 </field>
-<field id="groupid"><phrase id="fldcaption" value="group ID"/>
+<field id="groupid"><phrase id="fldcaption" value="GRUPO ID"/>
 </field>
-<field id="isbanned"><phrase id="fldcaption" value="is Banned"/>
+<field id="isbanned"><phrase id="fldcaption" value="IS BANEADO"/>
 </field>
-<field id="isapproved"><phrase id="fldcaption" value="is Approved"/>
+<field id="isapproved"><phrase id="fldcaption" value="IS APROVADO"/>
 </field>
-<field id="custom1"><phrase id="fldcaption" value="custom 1"/>
+<field id="custom1"><phrase id="fldcaption" value="CUSTOM 1"/>
 </field>
-<field id="custom2"><phrase id="fldcaption" value="custom 2"/>
+<field id="custom2"><phrase id="fldcaption" value="CUSTOM 2"/>
 </field>
-<field id="custom3"><phrase id="fldcaption" value="custom 3"/>
+<field id="custom3"><phrase id="fldcaption" value="CUSTOM 3"/>
 </field>
-<field id="custom4"><phrase id="fldcaption" value="custom 4"/>
+<field id="custom4"><phrase id="fldcaption" value="CUSTOM 3"/>
 </field>
-<field id="comments"><phrase id="fldcaption" value="comments"/>
+<field id="comments"><phrase id="fldcaption" value="COMMENTS"/>
 </field>
-<field id="pass_reset_key"><phrase id="fldcaption" value="pass reset key"/>
+<field id="pass_reset_key"><phrase id="fldcaption" value="PASS RESET KEY"/>
 </field>
-<field id="pass_reset_expiry"><phrase id="fldcaption" value="pass reset expiry"/>
-</field>
-</table>
-<table id="userlevelpermissions"><phrase id="tblcaption" value="userlevelpermissions"/>
-<field id="userlevelid"><phrase id="fldcaption" value="userlevelid"/>
-</field>
-<field id="_tablename"><phrase id="fldcaption" value="tablename"/>
-</field>
-<field id="permission"><phrase id="fldcaption" value="permission"/>
+<field id="pass_reset_expiry"><phrase id="fldcaption" value="PASS RESER EXPIRE"/>
 </field>
 </table>
-<table id="userlevels"><phrase id="tblcaption" value="userlevels"/>
-<field id="userlevelid"><phrase id="fldcaption" value="userlevelid"/>
+<table id="userlevelpermissions"><phrase id="tblcaption" value="PERMISOS"/>
+<field id="userlevelid"><phrase id="fldcaption" value="ROL ID"/>
 </field>
-<field id="userlevelname"><phrase id="fldcaption" value="userlevelname"/>
+<field id="_tablename"><phrase id="fldcaption" value="TABLA"/>
+</field>
+<field id="permission"><phrase id="fldcaption" value="PERMISO"/>
+</field>
+</table>
+<table id="userlevels"><phrase id="tblcaption" value="ROLES"/>
+<field id="userlevelid"><phrase id="fldcaption" value="ROL ID"/>
+</field>
+<field id="userlevelname"><phrase id="fldcaption" value="NOMBRE ROL"/>
 </field>
 </table>
 </project>

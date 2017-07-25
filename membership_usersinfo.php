@@ -216,12 +216,18 @@ class cmembership_users extends cTable {
 
 	// Apply User ID filters
 	function ApplyUserIDFilters($sFilter) {
+		global $Security;
+
+		// Add User ID filter
+		if ($Security->CurrentUserID() <> "" && !$Security->IsAdmin()) { // Non system admin
+			$sFilter = $this->AddUserIDFilter($sFilter);
+		}
 		return $sFilter;
 	}
 
 	// Check if User ID security allows view all
 	function UserIDAllow($id = "") {
-		$allow = EW_USER_ID_ALLOW;
+		$allow = $this->UserIDAllowSecurity;
 		switch ($id) {
 			case "add":
 			case "copy":
@@ -836,8 +842,36 @@ class cmembership_users extends cTable {
 		// custom1
 		$this->custom1->EditAttrs["class"] = "form-control";
 		$this->custom1->EditCustomAttributes = "";
+		if (!$Security->IsAdmin() && $Security->IsLoggedIn()) { // Non system admin
+			if (strval($this->memberID->CurrentValue) == strval(CurrentUserID())) {
+		$this->custom1->EditValue = $this->custom1->CurrentValue;
+		$this->custom1->ViewCustomAttributes = "";
+			} else {
+		$sFilterWrk = "";
+		$sFilterWrk = $GLOBALS["membership_users"]->AddParentUserIDFilter("", $this->memberID->CurrentValue);
+		switch (@$gsLanguage) {
+			case "es":
+				$sSqlWrk = "SELECT `memberID`, `memberID` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `membership_users`";
+				$sWhereWrk = "";
+				break;
+			default:
+				$sSqlWrk = "SELECT `memberID`, `memberID` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `membership_users`";
+				$sWhereWrk = "";
+				break;
+		}
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->custom1, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+		$rswrk = Conn()->Execute($sSqlWrk);
+		$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+		if ($rswrk) $rswrk->Close();
+		array_unshift($arwrk, array("", $Language->Phrase("PleaseSelect"), "", "", "", "", "", "", ""));
+		$this->custom1->EditValue = $arwrk;
+			}
+		} else {
 		$this->custom1->EditValue = $this->custom1->CurrentValue;
 		$this->custom1->PlaceHolder = ew_RemoveHtml($this->custom1->FldCaption());
+		}
 
 		// custom2
 		$this->custom2->EditAttrs["class"] = "form-control";
@@ -994,6 +1028,74 @@ class cmembership_users extends cTable {
 		if (!$Doc->ExportCustom) {
 			$Doc->ExportTableFooter();
 		}
+	}
+
+	// User ID filter
+	function UserIDFilter($userid) {
+		$sUserIDFilter = '`memberID` = ' . ew_QuotedValue($userid, EW_DATATYPE_STRING, EW_USER_TABLE_DBID);
+		$sParentUserIDFilter = '`memberID` IN (SELECT `memberID` FROM ' . "`membership_users`" . ' WHERE `custom1` = ' . ew_QuotedValue($userid, EW_DATATYPE_STRING, EW_USER_TABLE_DBID) . ')';
+		$sUserIDFilter = "($sUserIDFilter) OR ($sParentUserIDFilter)";
+		return $sUserIDFilter;
+	}
+
+	// Add User ID filter
+	function AddUserIDFilter($sFilter) {
+		global $Security;
+		$sFilterWrk = "";
+		$id = (CurrentPageID() == "list") ? $this->CurrentAction : CurrentPageID();
+		if (!$this->UserIDAllow($id) && !$Security->IsAdmin()) {
+			$sFilterWrk = $Security->UserIDList();
+			if ($sFilterWrk <> "")
+				$sFilterWrk = '`memberID` IN (' . $sFilterWrk . ')';
+		}
+
+		// Call User ID Filtering event
+		$this->UserID_Filtering($sFilterWrk);
+		ew_AddFilter($sFilter, $sFilterWrk);
+		return $sFilter;
+	}
+
+	// Add Parent User ID filter
+	function AddParentUserIDFilter($sFilter, $userid) {
+		global $Security;
+		if (!$Security->IsAdmin()) {
+			$result = $Security->ParentUserIDList($userid);
+			if ($result <> "")
+				$result = '`memberID` IN (' . $result . ')';
+			ew_AddFilter($result, $sFilter);
+			return $result;
+		} else {
+			return $sFilter;
+		}
+	}
+
+	// User ID subquery
+	function GetUserIDSubquery(&$fld, &$masterfld) {
+		global $UserTableConn;
+		$sWrk = "";
+		$sSql = "SELECT " . $masterfld->FldExpression . " FROM `membership_users`";
+		$sFilter = $this->AddUserIDFilter("");
+		if ($sFilter <> "") $sSql .= " WHERE " . $sFilter;
+
+		// Use subquery
+		if (EW_USE_SUBQUERY_FOR_MASTER_USER_ID) {
+			$sWrk = $sSql;
+		} else {
+
+			// List all values
+			if ($rs = $UserTableConn->Execute($sSql)) {
+				while (!$rs->EOF) {
+					if ($sWrk <> "") $sWrk .= ",";
+					$sWrk .= ew_QuotedValue($rs->fields[0], $masterfld->FldDataType, EW_USER_TABLE_DBID);
+					$rs->MoveNext();
+				}
+				$rs->Close();
+			}
+		}
+		if ($sWrk <> "") {
+			$sWrk = $fld->FldExpression . " IN (" . $sWrk . ")";
+		}
+		return $sWrk;
 	}
 
 	// Get auto fill value

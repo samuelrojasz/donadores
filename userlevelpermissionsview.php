@@ -5,6 +5,7 @@ ob_start(); // Turn on output buffering
 <?php include_once "ewcfg12.php" ?>
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql12.php") ?>
 <?php include_once "phpfn12.php" ?>
+<?php include_once "userlevelpermissionsinfo.php" ?>
 <?php include_once "membership_usersinfo.php" ?>
 <?php include_once "userfn12.php" ?>
 <?php
@@ -13,9 +14,9 @@ ob_start(); // Turn on output buffering
 // Page class
 //
 
-$membership_users_view = NULL; // Initialize page object first
+$userlevelpermissions_view = NULL; // Initialize page object first
 
-class cmembership_users_view extends cmembership_users {
+class cuserlevelpermissions_view extends cuserlevelpermissions {
 
 	// Page ID
 	var $PageID = 'view';
@@ -24,10 +25,10 @@ class cmembership_users_view extends cmembership_users {
 	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Table name
-	var $TableName = 'membership_users';
+	var $TableName = 'userlevelpermissions';
 
 	// Page object name
-	var $PageObjName = 'membership_users_view';
+	var $PageObjName = 'userlevelpermissions_view';
 
 	// Page name
 	function PageName() {
@@ -253,15 +254,19 @@ class cmembership_users_view extends cmembership_users {
 		// Parent constuctor
 		parent::__construct();
 
-		// Table object (membership_users)
-		if (!isset($GLOBALS["membership_users"]) || get_class($GLOBALS["membership_users"]) == "cmembership_users") {
-			$GLOBALS["membership_users"] = &$this;
-			$GLOBALS["Table"] = &$GLOBALS["membership_users"];
+		// Table object (userlevelpermissions)
+		if (!isset($GLOBALS["userlevelpermissions"]) || get_class($GLOBALS["userlevelpermissions"]) == "cuserlevelpermissions") {
+			$GLOBALS["userlevelpermissions"] = &$this;
+			$GLOBALS["Table"] = &$GLOBALS["userlevelpermissions"];
 		}
 		$KeyUrl = "";
-		if (@$_GET["memberID"] <> "") {
-			$this->RecKey["memberID"] = $_GET["memberID"];
-			$KeyUrl .= "&amp;memberID=" . urlencode($this->RecKey["memberID"]);
+		if (@$_GET["userlevelid"] <> "") {
+			$this->RecKey["userlevelid"] = $_GET["userlevelid"];
+			$KeyUrl .= "&amp;userlevelid=" . urlencode($this->RecKey["userlevelid"]);
+		}
+		if (@$_GET["_tablename"] <> "") {
+			$this->RecKey["_tablename"] = $_GET["_tablename"];
+			$KeyUrl .= "&amp;_tablename=" . urlencode($this->RecKey["_tablename"]);
 		}
 		$this->ExportPrintUrl = $this->PageUrl() . "export=print" . $KeyUrl;
 		$this->ExportHtmlUrl = $this->PageUrl() . "export=html" . $KeyUrl;
@@ -271,13 +276,16 @@ class cmembership_users_view extends cmembership_users {
 		$this->ExportCsvUrl = $this->PageUrl() . "export=csv" . $KeyUrl;
 		$this->ExportPdfUrl = $this->PageUrl() . "export=pdf" . $KeyUrl;
 
+		// Table object (membership_users)
+		if (!isset($GLOBALS['membership_users'])) $GLOBALS['membership_users'] = new cmembership_users();
+
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
 			define("EW_PAGE_ID", 'view', TRUE);
 
 		// Table name (for backward compatibility)
 		if (!defined("EW_TABLE_NAME"))
-			define("EW_TABLE_NAME", 'membership_users', TRUE);
+			define("EW_TABLE_NAME", 'userlevelpermissions', TRUE);
 
 		// Start timer
 		if (!isset($GLOBALS["gTimer"])) $GLOBALS["gTimer"] = new cTimer();
@@ -317,22 +325,14 @@ class cmembership_users_view extends cmembership_users {
 		if ($Security->IsLoggedIn()) $Security->TablePermission_Loading();
 		$Security->LoadCurrentUserLevel($this->ProjectID . $this->TableName);
 		if ($Security->IsLoggedIn()) $Security->TablePermission_Loaded();
-		if (!$Security->CanView()) {
+		if (!$Security->CanAdmin()) {
 			$Security->SaveLastUrl();
-			$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
-			if ($Security->CanList())
-				$this->Page_Terminate(ew_GetUrl("membership_userslist.php"));
-			else
-				$this->Page_Terminate(ew_GetUrl("login.php"));
+			$this->Page_Terminate(ew_GetUrl("login.php"));
 		}
 		if ($Security->IsLoggedIn()) {
 			$Security->UserID_Loading();
 			$Security->LoadUserID();
 			$Security->UserID_Loaded();
-			if (strval($Security->CurrentUserID()) == "") {
-				$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
-				$this->Page_Terminate(ew_GetUrl("membership_userslist.php"));
-			}
 		}
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
 
@@ -366,13 +366,13 @@ class cmembership_users_view extends cmembership_users {
 		Page_Unloaded();
 
 		// Export
-		global $EW_EXPORT, $membership_users;
+		global $EW_EXPORT, $userlevelpermissions;
 		if ($this->CustomExport <> "" && $this->CustomExport == $this->Export && array_key_exists($this->CustomExport, $EW_EXPORT)) {
 				$sContent = ob_get_contents();
 			if ($gsExportFile == "") $gsExportFile = $this->TableVar;
 			$class = $EW_EXPORT[$this->CustomExport];
 			if (class_exists($class)) {
-				$doc = new $class($membership_users);
+				$doc = new $class($userlevelpermissions);
 				$doc->Text = $sContent;
 				if ($this->Export == "email")
 					echo $this->ExportEmail($doc->Text);
@@ -420,14 +420,23 @@ class cmembership_users_view extends cmembership_users {
 		if ($this->Export == "")
 			$this->SetupBreadcrumb();
 		if ($this->IsPageRequest()) { // Validate request
-			if (@$_GET["memberID"] <> "") {
-				$this->memberID->setQueryStringValue($_GET["memberID"]);
-				$this->RecKey["memberID"] = $this->memberID->QueryStringValue;
-			} elseif (@$_POST["memberID"] <> "") {
-				$this->memberID->setFormValue($_POST["memberID"]);
-				$this->RecKey["memberID"] = $this->memberID->FormValue;
+			if (@$_GET["userlevelid"] <> "") {
+				$this->userlevelid->setQueryStringValue($_GET["userlevelid"]);
+				$this->RecKey["userlevelid"] = $this->userlevelid->QueryStringValue;
+			} elseif (@$_POST["userlevelid"] <> "") {
+				$this->userlevelid->setFormValue($_POST["userlevelid"]);
+				$this->RecKey["userlevelid"] = $this->userlevelid->FormValue;
 			} else {
-				$sReturnUrl = "membership_userslist.php"; // Return to list
+				$sReturnUrl = "userlevelpermissionslist.php"; // Return to list
+			}
+			if (@$_GET["_tablename"] <> "") {
+				$this->_tablename->setQueryStringValue($_GET["_tablename"]);
+				$this->RecKey["_tablename"] = $this->_tablename->QueryStringValue;
+			} elseif (@$_POST["_tablename"] <> "") {
+				$this->_tablename->setFormValue($_POST["_tablename"]);
+				$this->RecKey["_tablename"] = $this->_tablename->FormValue;
+			} else {
+				$sReturnUrl = "userlevelpermissionslist.php"; // Return to list
 			}
 
 			// Get action
@@ -437,11 +446,11 @@ class cmembership_users_view extends cmembership_users {
 					if (!$this->LoadRow()) { // Load record based on key
 						if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
 							$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
-						$sReturnUrl = "membership_userslist.php"; // No matching record, return to list
+						$sReturnUrl = "userlevelpermissionslist.php"; // No matching record, return to list
 					}
 			}
 		} else {
-			$sReturnUrl = "membership_userslist.php"; // Not page request, return to list
+			$sReturnUrl = "userlevelpermissionslist.php"; // Not page request, return to list
 		}
 		if ($sReturnUrl <> "")
 			$this->Page_Terminate($sReturnUrl);
@@ -466,17 +475,17 @@ class cmembership_users_view extends cmembership_users {
 		// Edit
 		$item = &$option->Add("edit");
 		$item->Body = "<a class=\"ewAction ewEdit\" title=\"" . ew_HtmlTitle($Language->Phrase("ViewPageEditLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("ViewPageEditLink")) . "\" href=\"" . ew_HtmlEncode($this->EditUrl) . "\">" . $Language->Phrase("ViewPageEditLink") . "</a>";
-		$item->Visible = ($this->EditUrl <> "" && $Security->CanEdit()&& $this->ShowOptionLink('edit'));
+		$item->Visible = ($this->EditUrl <> "" && $Security->CanEdit());
 
 		// Copy
 		$item = &$option->Add("copy");
 		$item->Body = "<a class=\"ewAction ewCopy\" title=\"" . ew_HtmlTitle($Language->Phrase("ViewPageCopyLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("ViewPageCopyLink")) . "\" href=\"" . ew_HtmlEncode($this->CopyUrl) . "\">" . $Language->Phrase("ViewPageCopyLink") . "</a>";
-		$item->Visible = ($this->CopyUrl <> "" && $Security->CanAdd() && $this->ShowOptionLink('add'));
+		$item->Visible = ($this->CopyUrl <> "" && $Security->CanAdd());
 
 		// Delete
 		$item = &$option->Add("delete");
 		$item->Body = "<a class=\"ewAction ewDelete\" title=\"" . ew_HtmlTitle($Language->Phrase("ViewPageDeleteLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("ViewPageDeleteLink")) . "\" href=\"" . ew_HtmlEncode($this->DeleteUrl) . "\">" . $Language->Phrase("ViewPageDeleteLink") . "</a>";
-		$item->Visible = ($this->DeleteUrl <> "" && $Security->CanDelete() && $this->ShowOptionLink('delete'));
+		$item->Visible = ($this->DeleteUrl <> "" && $Security->CanDelete());
 
 		// Set up action default
 		$option = &$options["action"];
@@ -554,40 +563,18 @@ class cmembership_users_view extends cmembership_users {
 		// Call Row Selected event
 		$row = &$rs->fields;
 		$this->Row_Selected($row);
-		$this->memberID->setDbValue($rs->fields('memberID'));
-		$this->passMD5->setDbValue($rs->fields('passMD5'));
-		$this->_email->setDbValue($rs->fields('email'));
-		$this->signupDate->setDbValue($rs->fields('signupDate'));
-		$this->groupID->setDbValue($rs->fields('groupID'));
-		$this->isBanned->setDbValue($rs->fields('isBanned'));
-		$this->isApproved->setDbValue($rs->fields('isApproved'));
-		$this->custom1->setDbValue($rs->fields('custom1'));
-		$this->custom2->setDbValue($rs->fields('custom2'));
-		$this->custom3->setDbValue($rs->fields('custom3'));
-		$this->custom4->setDbValue($rs->fields('custom4'));
-		$this->comments->setDbValue($rs->fields('comments'));
-		$this->pass_reset_key->setDbValue($rs->fields('pass_reset_key'));
-		$this->pass_reset_expiry->setDbValue($rs->fields('pass_reset_expiry'));
+		$this->userlevelid->setDbValue($rs->fields('userlevelid'));
+		$this->_tablename->setDbValue($rs->fields('tablename'));
+		$this->permission->setDbValue($rs->fields('permission'));
 	}
 
 	// Load DbValue from recordset
 	function LoadDbValues(&$rs) {
 		if (!$rs || !is_array($rs) && $rs->EOF) return;
 		$row = is_array($rs) ? $rs : $rs->fields;
-		$this->memberID->DbValue = $row['memberID'];
-		$this->passMD5->DbValue = $row['passMD5'];
-		$this->_email->DbValue = $row['email'];
-		$this->signupDate->DbValue = $row['signupDate'];
-		$this->groupID->DbValue = $row['groupID'];
-		$this->isBanned->DbValue = $row['isBanned'];
-		$this->isApproved->DbValue = $row['isApproved'];
-		$this->custom1->DbValue = $row['custom1'];
-		$this->custom2->DbValue = $row['custom2'];
-		$this->custom3->DbValue = $row['custom3'];
-		$this->custom4->DbValue = $row['custom4'];
-		$this->comments->DbValue = $row['comments'];
-		$this->pass_reset_key->DbValue = $row['pass_reset_key'];
-		$this->pass_reset_expiry->DbValue = $row['pass_reset_expiry'];
+		$this->userlevelid->DbValue = $row['userlevelid'];
+		$this->_tablename->DbValue = $row['tablename'];
+		$this->permission->DbValue = $row['permission'];
 	}
 
 	// Render row values based on field settings
@@ -606,179 +593,38 @@ class cmembership_users_view extends cmembership_users {
 		$this->Row_Rendering();
 
 		// Common render codes for all row types
-		// memberID
-		// passMD5
-		// email
-		// signupDate
-		// groupID
-		// isBanned
-		// isApproved
-		// custom1
-		// custom2
-		// custom3
-		// custom4
-		// comments
-		// pass_reset_key
-		// pass_reset_expiry
+		// userlevelid
+		// tablename
+		// permission
 
 		if ($this->RowType == EW_ROWTYPE_VIEW) { // View row
 
-		// memberID
-		$this->memberID->ViewValue = $this->memberID->CurrentValue;
-		$this->memberID->ViewCustomAttributes = "";
+		// userlevelid
+		$this->userlevelid->ViewValue = $this->userlevelid->CurrentValue;
+		$this->userlevelid->ViewCustomAttributes = "";
 
-		// passMD5
-		$this->passMD5->ViewValue = $this->passMD5->CurrentValue;
-		$this->passMD5->ViewCustomAttributes = "";
+		// tablename
+		$this->_tablename->ViewValue = $this->_tablename->CurrentValue;
+		$this->_tablename->ViewCustomAttributes = "";
 
-		// email
-		$this->_email->ViewValue = $this->_email->CurrentValue;
-		$this->_email->ViewCustomAttributes = "";
+		// permission
+		$this->permission->ViewValue = $this->permission->CurrentValue;
+		$this->permission->ViewCustomAttributes = "";
 
-		// signupDate
-		$this->signupDate->ViewValue = $this->signupDate->CurrentValue;
-		$this->signupDate->ViewValue = ew_FormatDateTime($this->signupDate->ViewValue, 5);
-		$this->signupDate->ViewCustomAttributes = "";
+			// userlevelid
+			$this->userlevelid->LinkCustomAttributes = "";
+			$this->userlevelid->HrefValue = "";
+			$this->userlevelid->TooltipValue = "";
 
-		// groupID
-		if ($Security->CanAdmin()) { // System admin
-		if (strval($this->groupID->CurrentValue) <> "") {
-			$sFilterWrk = "`userlevelid`" . ew_SearchString("=", $this->groupID->CurrentValue, EW_DATATYPE_NUMBER, "");
-		switch (@$gsLanguage) {
-			case "es":
-				$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
-				$sWhereWrk = "";
-				break;
-			default:
-				$sSqlWrk = "SELECT `userlevelid`, `userlevelname` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `userlevels`";
-				$sWhereWrk = "";
-				break;
-		}
-		ew_AddFilter($sWhereWrk, $sFilterWrk);
-		$this->Lookup_Selecting($this->groupID, $sWhereWrk); // Call Lookup selecting
-		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
-			$rswrk = Conn()->Execute($sSqlWrk);
-			if ($rswrk && !$rswrk->EOF) { // Lookup values found
-				$arwrk = array();
-				$arwrk[1] = $rswrk->fields('DispFld');
-				$this->groupID->ViewValue = $this->groupID->DisplayValue($arwrk);
-				$rswrk->Close();
-			} else {
-				$this->groupID->ViewValue = $this->groupID->CurrentValue;
-			}
-		} else {
-			$this->groupID->ViewValue = NULL;
-		}
-		} else {
-			$this->groupID->ViewValue = $Language->Phrase("PasswordMask");
-		}
-		$this->groupID->ViewCustomAttributes = "";
+			// tablename
+			$this->_tablename->LinkCustomAttributes = "";
+			$this->_tablename->HrefValue = "";
+			$this->_tablename->TooltipValue = "";
 
-		// isBanned
-		$this->isBanned->ViewValue = $this->isBanned->CurrentValue;
-		$this->isBanned->ViewCustomAttributes = "";
-
-		// isApproved
-		$this->isApproved->ViewValue = $this->isApproved->CurrentValue;
-		$this->isApproved->ViewCustomAttributes = "";
-
-		// custom1
-		$this->custom1->ViewValue = $this->custom1->CurrentValue;
-		$this->custom1->ViewCustomAttributes = "";
-
-		// custom2
-		$this->custom2->ViewValue = $this->custom2->CurrentValue;
-		$this->custom2->ViewCustomAttributes = "";
-
-		// custom3
-		$this->custom3->ViewValue = $this->custom3->CurrentValue;
-		$this->custom3->ViewCustomAttributes = "";
-
-		// custom4
-		$this->custom4->ViewValue = $this->custom4->CurrentValue;
-		$this->custom4->ViewCustomAttributes = "";
-
-		// comments
-		$this->comments->ViewValue = $this->comments->CurrentValue;
-		$this->comments->ViewCustomAttributes = "";
-
-		// pass_reset_key
-		$this->pass_reset_key->ViewValue = $this->pass_reset_key->CurrentValue;
-		$this->pass_reset_key->ViewCustomAttributes = "";
-
-		// pass_reset_expiry
-		$this->pass_reset_expiry->ViewValue = $this->pass_reset_expiry->CurrentValue;
-		$this->pass_reset_expiry->ViewCustomAttributes = "";
-
-			// memberID
-			$this->memberID->LinkCustomAttributes = "";
-			$this->memberID->HrefValue = "";
-			$this->memberID->TooltipValue = "";
-
-			// passMD5
-			$this->passMD5->LinkCustomAttributes = "";
-			$this->passMD5->HrefValue = "";
-			$this->passMD5->TooltipValue = "";
-
-			// email
-			$this->_email->LinkCustomAttributes = "";
-			$this->_email->HrefValue = "";
-			$this->_email->TooltipValue = "";
-
-			// signupDate
-			$this->signupDate->LinkCustomAttributes = "";
-			$this->signupDate->HrefValue = "";
-			$this->signupDate->TooltipValue = "";
-
-			// groupID
-			$this->groupID->LinkCustomAttributes = "";
-			$this->groupID->HrefValue = "";
-			$this->groupID->TooltipValue = "";
-
-			// isBanned
-			$this->isBanned->LinkCustomAttributes = "";
-			$this->isBanned->HrefValue = "";
-			$this->isBanned->TooltipValue = "";
-
-			// isApproved
-			$this->isApproved->LinkCustomAttributes = "";
-			$this->isApproved->HrefValue = "";
-			$this->isApproved->TooltipValue = "";
-
-			// custom1
-			$this->custom1->LinkCustomAttributes = "";
-			$this->custom1->HrefValue = "";
-			$this->custom1->TooltipValue = "";
-
-			// custom2
-			$this->custom2->LinkCustomAttributes = "";
-			$this->custom2->HrefValue = "";
-			$this->custom2->TooltipValue = "";
-
-			// custom3
-			$this->custom3->LinkCustomAttributes = "";
-			$this->custom3->HrefValue = "";
-			$this->custom3->TooltipValue = "";
-
-			// custom4
-			$this->custom4->LinkCustomAttributes = "";
-			$this->custom4->HrefValue = "";
-			$this->custom4->TooltipValue = "";
-
-			// comments
-			$this->comments->LinkCustomAttributes = "";
-			$this->comments->HrefValue = "";
-			$this->comments->TooltipValue = "";
-
-			// pass_reset_key
-			$this->pass_reset_key->LinkCustomAttributes = "";
-			$this->pass_reset_key->HrefValue = "";
-			$this->pass_reset_key->TooltipValue = "";
-
-			// pass_reset_expiry
-			$this->pass_reset_expiry->LinkCustomAttributes = "";
-			$this->pass_reset_expiry->HrefValue = "";
-			$this->pass_reset_expiry->TooltipValue = "";
+			// permission
+			$this->permission->LinkCustomAttributes = "";
+			$this->permission->HrefValue = "";
+			$this->permission->TooltipValue = "";
 		}
 
 		// Call Row Rendered event
@@ -786,20 +632,12 @@ class cmembership_users_view extends cmembership_users {
 			$this->Row_Rendered();
 	}
 
-	// Show link optionally based on User ID
-	function ShowOptionLink($id = "") {
-		global $Security;
-		if ($Security->IsLoggedIn() && !$Security->IsAdmin() && !$this->UserIDAllow($id))
-			return $Security->IsValidUserID($this->memberID->CurrentValue);
-		return TRUE;
-	}
-
 	// Set up Breadcrumb
 	function SetupBreadcrumb() {
 		global $Breadcrumb, $Language;
 		$Breadcrumb = new cBreadcrumb();
 		$url = substr(ew_CurrentUrl(), strrpos(ew_CurrentUrl(), "/")+1);
-		$Breadcrumb->Add("list", $this->TableVar, "membership_userslist.php", "", $this->TableVar, TRUE);
+		$Breadcrumb->Add("list", $this->TableVar, "userlevelpermissionslist.php", "", $this->TableVar, TRUE);
 		$PageId = "view";
 		$Breadcrumb->Add("view", $PageId, $url);
 	}
@@ -895,29 +733,29 @@ class cmembership_users_view extends cmembership_users {
 <?php
 
 // Create page object
-if (!isset($membership_users_view)) $membership_users_view = new cmembership_users_view();
+if (!isset($userlevelpermissions_view)) $userlevelpermissions_view = new cuserlevelpermissions_view();
 
 // Page init
-$membership_users_view->Page_Init();
+$userlevelpermissions_view->Page_Init();
 
 // Page main
-$membership_users_view->Page_Main();
+$userlevelpermissions_view->Page_Main();
 
 // Global Page Rendering event (in userfn*.php)
 Page_Rendering();
 
 // Page Rendering event
-$membership_users_view->Page_Render();
+$userlevelpermissions_view->Page_Render();
 ?>
 <?php include_once "header.php" ?>
 <script type="text/javascript">
 
 // Form object
 var CurrentPageID = EW_PAGE_ID = "view";
-var CurrentForm = fmembership_usersview = new ew_Form("fmembership_usersview", "view");
+var CurrentForm = fuserlevelpermissionsview = new ew_Form("fuserlevelpermissionsview", "view");
 
 // Form_CustomValidate event
-fmembership_usersview.Form_CustomValidate = 
+fuserlevelpermissionsview.Form_CustomValidate = 
  function(fobj) { // DO NOT CHANGE THIS LINE!
 
  	// Your custom validation code here, return false if invalid. 
@@ -926,15 +764,14 @@ fmembership_usersview.Form_CustomValidate =
 
 // Use JavaScript validation or not
 <?php if (EW_CLIENT_VALIDATE) { ?>
-fmembership_usersview.ValidateRequired = true;
+fuserlevelpermissionsview.ValidateRequired = true;
 <?php } else { ?>
-fmembership_usersview.ValidateRequired = false; 
+fuserlevelpermissionsview.ValidateRequired = false; 
 <?php } ?>
 
 // Dynamic selection lists
-fmembership_usersview.Lists["x_groupID"] = {"LinkField":"x_userlevelid","Ajax":true,"AutoFill":false,"DisplayFields":["x_userlevelname","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":""};
-
 // Form object for search
+
 </script>
 <script type="text/javascript">
 
@@ -942,174 +779,53 @@ fmembership_usersview.Lists["x_groupID"] = {"LinkField":"x_userlevelid","Ajax":t
 </script>
 <div class="ewToolbar">
 <?php $Breadcrumb->Render(); ?>
-<?php $membership_users_view->ExportOptions->Render("body") ?>
+<?php $userlevelpermissions_view->ExportOptions->Render("body") ?>
 <?php
-	foreach ($membership_users_view->OtherOptions as &$option)
+	foreach ($userlevelpermissions_view->OtherOptions as &$option)
 		$option->Render("body");
 ?>
 <?php echo $Language->SelectionForm(); ?>
 <div class="clearfix"></div>
 </div>
-<?php $membership_users_view->ShowPageHeader(); ?>
+<?php $userlevelpermissions_view->ShowPageHeader(); ?>
 <?php
-$membership_users_view->ShowMessage();
+$userlevelpermissions_view->ShowMessage();
 ?>
-<form name="fmembership_usersview" id="fmembership_usersview" class="form-inline ewForm ewViewForm" action="<?php echo ew_CurrentPage() ?>" method="post">
-<?php if ($membership_users_view->CheckToken) { ?>
-<input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $membership_users_view->Token ?>">
+<form name="fuserlevelpermissionsview" id="fuserlevelpermissionsview" class="form-inline ewForm ewViewForm" action="<?php echo ew_CurrentPage() ?>" method="post">
+<?php if ($userlevelpermissions_view->CheckToken) { ?>
+<input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $userlevelpermissions_view->Token ?>">
 <?php } ?>
-<input type="hidden" name="t" value="membership_users">
+<input type="hidden" name="t" value="userlevelpermissions">
 <table class="table table-bordered table-striped ewViewTable">
-<?php if ($membership_users->memberID->Visible) { // memberID ?>
-	<tr id="r_memberID">
-		<td><span id="elh_membership_users_memberID"><?php echo $membership_users->memberID->FldCaption() ?></span></td>
-		<td data-name="memberID"<?php echo $membership_users->memberID->CellAttributes() ?>>
-<span id="el_membership_users_memberID">
-<span<?php echo $membership_users->memberID->ViewAttributes() ?>>
-<?php echo $membership_users->memberID->ViewValue ?></span>
+<?php if ($userlevelpermissions->userlevelid->Visible) { // userlevelid ?>
+	<tr id="r_userlevelid">
+		<td><span id="elh_userlevelpermissions_userlevelid"><?php echo $userlevelpermissions->userlevelid->FldCaption() ?></span></td>
+		<td data-name="userlevelid"<?php echo $userlevelpermissions->userlevelid->CellAttributes() ?>>
+<span id="el_userlevelpermissions_userlevelid">
+<span<?php echo $userlevelpermissions->userlevelid->ViewAttributes() ?>>
+<?php echo $userlevelpermissions->userlevelid->ViewValue ?></span>
 </span>
 </td>
 	</tr>
 <?php } ?>
-<?php if ($membership_users->passMD5->Visible) { // passMD5 ?>
-	<tr id="r_passMD5">
-		<td><span id="elh_membership_users_passMD5"><?php echo $membership_users->passMD5->FldCaption() ?></span></td>
-		<td data-name="passMD5"<?php echo $membership_users->passMD5->CellAttributes() ?>>
-<span id="el_membership_users_passMD5">
-<span<?php echo $membership_users->passMD5->ViewAttributes() ?>>
-<?php echo $membership_users->passMD5->ViewValue ?></span>
+<?php if ($userlevelpermissions->_tablename->Visible) { // tablename ?>
+	<tr id="r__tablename">
+		<td><span id="elh_userlevelpermissions__tablename"><?php echo $userlevelpermissions->_tablename->FldCaption() ?></span></td>
+		<td data-name="_tablename"<?php echo $userlevelpermissions->_tablename->CellAttributes() ?>>
+<span id="el_userlevelpermissions__tablename">
+<span<?php echo $userlevelpermissions->_tablename->ViewAttributes() ?>>
+<?php echo $userlevelpermissions->_tablename->ViewValue ?></span>
 </span>
 </td>
 	</tr>
 <?php } ?>
-<?php if ($membership_users->_email->Visible) { // email ?>
-	<tr id="r__email">
-		<td><span id="elh_membership_users__email"><?php echo $membership_users->_email->FldCaption() ?></span></td>
-		<td data-name="_email"<?php echo $membership_users->_email->CellAttributes() ?>>
-<span id="el_membership_users__email">
-<span<?php echo $membership_users->_email->ViewAttributes() ?>>
-<?php echo $membership_users->_email->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->signupDate->Visible) { // signupDate ?>
-	<tr id="r_signupDate">
-		<td><span id="elh_membership_users_signupDate"><?php echo $membership_users->signupDate->FldCaption() ?></span></td>
-		<td data-name="signupDate"<?php echo $membership_users->signupDate->CellAttributes() ?>>
-<span id="el_membership_users_signupDate">
-<span<?php echo $membership_users->signupDate->ViewAttributes() ?>>
-<?php echo $membership_users->signupDate->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->groupID->Visible) { // groupID ?>
-	<tr id="r_groupID">
-		<td><span id="elh_membership_users_groupID"><?php echo $membership_users->groupID->FldCaption() ?></span></td>
-		<td data-name="groupID"<?php echo $membership_users->groupID->CellAttributes() ?>>
-<span id="el_membership_users_groupID">
-<span<?php echo $membership_users->groupID->ViewAttributes() ?>>
-<?php echo $membership_users->groupID->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->isBanned->Visible) { // isBanned ?>
-	<tr id="r_isBanned">
-		<td><span id="elh_membership_users_isBanned"><?php echo $membership_users->isBanned->FldCaption() ?></span></td>
-		<td data-name="isBanned"<?php echo $membership_users->isBanned->CellAttributes() ?>>
-<span id="el_membership_users_isBanned">
-<span<?php echo $membership_users->isBanned->ViewAttributes() ?>>
-<?php echo $membership_users->isBanned->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->isApproved->Visible) { // isApproved ?>
-	<tr id="r_isApproved">
-		<td><span id="elh_membership_users_isApproved"><?php echo $membership_users->isApproved->FldCaption() ?></span></td>
-		<td data-name="isApproved"<?php echo $membership_users->isApproved->CellAttributes() ?>>
-<span id="el_membership_users_isApproved">
-<span<?php echo $membership_users->isApproved->ViewAttributes() ?>>
-<?php echo $membership_users->isApproved->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->custom1->Visible) { // custom1 ?>
-	<tr id="r_custom1">
-		<td><span id="elh_membership_users_custom1"><?php echo $membership_users->custom1->FldCaption() ?></span></td>
-		<td data-name="custom1"<?php echo $membership_users->custom1->CellAttributes() ?>>
-<span id="el_membership_users_custom1">
-<span<?php echo $membership_users->custom1->ViewAttributes() ?>>
-<?php echo $membership_users->custom1->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->custom2->Visible) { // custom2 ?>
-	<tr id="r_custom2">
-		<td><span id="elh_membership_users_custom2"><?php echo $membership_users->custom2->FldCaption() ?></span></td>
-		<td data-name="custom2"<?php echo $membership_users->custom2->CellAttributes() ?>>
-<span id="el_membership_users_custom2">
-<span<?php echo $membership_users->custom2->ViewAttributes() ?>>
-<?php echo $membership_users->custom2->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->custom3->Visible) { // custom3 ?>
-	<tr id="r_custom3">
-		<td><span id="elh_membership_users_custom3"><?php echo $membership_users->custom3->FldCaption() ?></span></td>
-		<td data-name="custom3"<?php echo $membership_users->custom3->CellAttributes() ?>>
-<span id="el_membership_users_custom3">
-<span<?php echo $membership_users->custom3->ViewAttributes() ?>>
-<?php echo $membership_users->custom3->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->custom4->Visible) { // custom4 ?>
-	<tr id="r_custom4">
-		<td><span id="elh_membership_users_custom4"><?php echo $membership_users->custom4->FldCaption() ?></span></td>
-		<td data-name="custom4"<?php echo $membership_users->custom4->CellAttributes() ?>>
-<span id="el_membership_users_custom4">
-<span<?php echo $membership_users->custom4->ViewAttributes() ?>>
-<?php echo $membership_users->custom4->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->comments->Visible) { // comments ?>
-	<tr id="r_comments">
-		<td><span id="elh_membership_users_comments"><?php echo $membership_users->comments->FldCaption() ?></span></td>
-		<td data-name="comments"<?php echo $membership_users->comments->CellAttributes() ?>>
-<span id="el_membership_users_comments">
-<span<?php echo $membership_users->comments->ViewAttributes() ?>>
-<?php echo $membership_users->comments->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->pass_reset_key->Visible) { // pass_reset_key ?>
-	<tr id="r_pass_reset_key">
-		<td><span id="elh_membership_users_pass_reset_key"><?php echo $membership_users->pass_reset_key->FldCaption() ?></span></td>
-		<td data-name="pass_reset_key"<?php echo $membership_users->pass_reset_key->CellAttributes() ?>>
-<span id="el_membership_users_pass_reset_key">
-<span<?php echo $membership_users->pass_reset_key->ViewAttributes() ?>>
-<?php echo $membership_users->pass_reset_key->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($membership_users->pass_reset_expiry->Visible) { // pass_reset_expiry ?>
-	<tr id="r_pass_reset_expiry">
-		<td><span id="elh_membership_users_pass_reset_expiry"><?php echo $membership_users->pass_reset_expiry->FldCaption() ?></span></td>
-		<td data-name="pass_reset_expiry"<?php echo $membership_users->pass_reset_expiry->CellAttributes() ?>>
-<span id="el_membership_users_pass_reset_expiry">
-<span<?php echo $membership_users->pass_reset_expiry->ViewAttributes() ?>>
-<?php echo $membership_users->pass_reset_expiry->ViewValue ?></span>
+<?php if ($userlevelpermissions->permission->Visible) { // permission ?>
+	<tr id="r_permission">
+		<td><span id="elh_userlevelpermissions_permission"><?php echo $userlevelpermissions->permission->FldCaption() ?></span></td>
+		<td data-name="permission"<?php echo $userlevelpermissions->permission->CellAttributes() ?>>
+<span id="el_userlevelpermissions_permission">
+<span<?php echo $userlevelpermissions->permission->ViewAttributes() ?>>
+<?php echo $userlevelpermissions->permission->ViewValue ?></span>
 </span>
 </td>
 	</tr>
@@ -1117,10 +833,10 @@ $membership_users_view->ShowMessage();
 </table>
 </form>
 <script type="text/javascript">
-fmembership_usersview.Init();
+fuserlevelpermissionsview.Init();
 </script>
 <?php
-$membership_users_view->ShowPageFooter();
+$userlevelpermissions_view->ShowPageFooter();
 if (EW_DEBUG_ENABLED)
 	echo ew_DebugMsg();
 ?>
@@ -1132,5 +848,5 @@ if (EW_DEBUG_ENABLED)
 </script>
 <?php include_once "footer.php" ?>
 <?php
-$membership_users_view->Page_Terminate();
+$userlevelpermissions_view->Page_Terminate();
 ?>

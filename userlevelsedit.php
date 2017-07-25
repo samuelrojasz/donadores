@@ -5,7 +5,7 @@ ob_start(); // Turn on output buffering
 <?php include_once "ewcfg12.php" ?>
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql12.php") ?>
 <?php include_once "phpfn12.php" ?>
-<?php include_once "hospitaisinfo.php" ?>
+<?php include_once "userlevelsinfo.php" ?>
 <?php include_once "membership_usersinfo.php" ?>
 <?php include_once "userfn12.php" ?>
 <?php
@@ -14,9 +14,9 @@ ob_start(); // Turn on output buffering
 // Page class
 //
 
-$hospitais_edit = NULL; // Initialize page object first
+$userlevels_edit = NULL; // Initialize page object first
 
-class chospitais_edit extends chospitais {
+class cuserlevels_edit extends cuserlevels {
 
 	// Page ID
 	var $PageID = 'edit';
@@ -25,10 +25,10 @@ class chospitais_edit extends chospitais {
 	var $ProjectID = "{A9B917F6-72DB-4C37-BB0D-F508A0EFFBF8}";
 
 	// Table name
-	var $TableName = 'hospitais';
+	var $TableName = 'userlevels';
 
 	// Page object name
-	var $PageObjName = 'hospitais_edit';
+	var $PageObjName = 'userlevels_edit';
 
 	// Page name
 	function PageName() {
@@ -222,10 +222,10 @@ class chospitais_edit extends chospitais {
 		// Parent constuctor
 		parent::__construct();
 
-		// Table object (hospitais)
-		if (!isset($GLOBALS["hospitais"]) || get_class($GLOBALS["hospitais"]) == "chospitais") {
-			$GLOBALS["hospitais"] = &$this;
-			$GLOBALS["Table"] = &$GLOBALS["hospitais"];
+		// Table object (userlevels)
+		if (!isset($GLOBALS["userlevels"]) || get_class($GLOBALS["userlevels"]) == "cuserlevels") {
+			$GLOBALS["userlevels"] = &$this;
+			$GLOBALS["Table"] = &$GLOBALS["userlevels"];
 		}
 
 		// Table object (membership_users)
@@ -237,7 +237,7 @@ class chospitais_edit extends chospitais {
 
 		// Table name (for backward compatibility)
 		if (!defined("EW_TABLE_NAME"))
-			define("EW_TABLE_NAME", 'hospitais', TRUE);
+			define("EW_TABLE_NAME", 'userlevels', TRUE);
 
 		// Start timer
 		if (!isset($GLOBALS["gTimer"])) $GLOBALS["gTimer"] = new cTimer();
@@ -264,13 +264,9 @@ class chospitais_edit extends chospitais {
 		if ($Security->IsLoggedIn()) $Security->TablePermission_Loading();
 		$Security->LoadCurrentUserLevel($this->ProjectID . $this->TableName);
 		if ($Security->IsLoggedIn()) $Security->TablePermission_Loaded();
-		if (!$Security->CanEdit()) {
+		if (!$Security->CanAdmin()) {
 			$Security->SaveLastUrl();
-			$this->setFailureMessage($Language->Phrase("NoPermission")); // Set no permission
-			if ($Security->CanList())
-				$this->Page_Terminate(ew_GetUrl("hospitaislist.php"));
-			else
-				$this->Page_Terminate(ew_GetUrl("login.php"));
+			$this->Page_Terminate(ew_GetUrl("login.php"));
 		}
 		if ($Security->IsLoggedIn()) {
 			$Security->UserID_Loading();
@@ -281,7 +277,6 @@ class chospitais_edit extends chospitais {
 		// Create form object
 		$objForm = new cFormObj();
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->Id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 
 		// Global Page Loading event (in userfn*.php)
 		Page_Loading();
@@ -327,13 +322,13 @@ class chospitais_edit extends chospitais {
 		Page_Unloaded();
 
 		// Export
-		global $EW_EXPORT, $hospitais;
+		global $EW_EXPORT, $userlevels;
 		if ($this->CustomExport <> "" && $this->CustomExport == $this->Export && array_key_exists($this->CustomExport, $EW_EXPORT)) {
 				$sContent = ob_get_contents();
 			if ($gsExportFile == "") $gsExportFile = $this->TableVar;
 			$class = $EW_EXPORT[$this->CustomExport];
 			if (class_exists($class)) {
-				$doc = new $class($hospitais);
+				$doc = new $class($userlevels);
 				$doc->Text = $sContent;
 				if ($this->Export == "email")
 					echo $this->ExportEmail($doc->Text);
@@ -367,8 +362,8 @@ class chospitais_edit extends chospitais {
 		global $objForm, $Language, $gsFormError;
 
 		// Load key from QueryString
-		if (@$_GET["Id"] <> "") {
-			$this->Id->setQueryStringValue($_GET["Id"]);
+		if (@$_GET["userlevelid"] <> "") {
+			$this->userlevelid->setQueryStringValue($_GET["userlevelid"]);
 		}
 
 		// Set up Breadcrumb
@@ -383,8 +378,8 @@ class chospitais_edit extends chospitais {
 		}
 
 		// Check if valid key
-		if ($this->Id->CurrentValue == "")
-			$this->Page_Terminate("hospitaislist.php"); // Invalid key, return to list
+		if ($this->userlevelid->CurrentValue == "")
+			$this->Page_Terminate("userlevelslist.php"); // Invalid key, return to list
 
 		// Validate form if post back
 		if (@$_POST["a_edit"] <> "") {
@@ -399,7 +394,7 @@ class chospitais_edit extends chospitais {
 			case "I": // Get a record to display
 				if (!$this->LoadRow()) { // Load record based on key
 					if ($this->getFailureMessage() == "") $this->setFailureMessage($Language->Phrase("NoRecord")); // No record found
-					$this->Page_Terminate("hospitaislist.php"); // No matching record, return to list
+					$this->Page_Terminate("userlevelslist.php"); // No matching record, return to list
 				}
 				break;
 			Case "U": // Update
@@ -471,25 +466,11 @@ class chospitais_edit extends chospitais {
 
 		// Load from form
 		global $objForm;
-		if (!$this->Id->FldIsDetailKey)
-			$this->Id->setFormValue($objForm->GetValue("x_Id"));
-		if (!$this->nome->FldIsDetailKey) {
-			$this->nome->setFormValue($objForm->GetValue("x_nome"));
+		if (!$this->userlevelid->FldIsDetailKey) {
+			$this->userlevelid->setFormValue($objForm->GetValue("x_userlevelid"));
 		}
-		if (!$this->endereco->FldIsDetailKey) {
-			$this->endereco->setFormValue($objForm->GetValue("x_endereco"));
-		}
-		if (!$this->telefone->FldIsDetailKey) {
-			$this->telefone->setFormValue($objForm->GetValue("x_telefone"));
-		}
-		if (!$this->celular->FldIsDetailKey) {
-			$this->celular->setFormValue($objForm->GetValue("x_celular"));
-		}
-		if (!$this->estado->FldIsDetailKey) {
-			$this->estado->setFormValue($objForm->GetValue("x_estado"));
-		}
-		if (!$this->cidade->FldIsDetailKey) {
-			$this->cidade->setFormValue($objForm->GetValue("x_cidade"));
+		if (!$this->userlevelname->FldIsDetailKey) {
+			$this->userlevelname->setFormValue($objForm->GetValue("x_userlevelname"));
 		}
 	}
 
@@ -497,13 +478,8 @@ class chospitais_edit extends chospitais {
 	function RestoreFormValues() {
 		global $objForm;
 		$this->LoadRow();
-		$this->Id->CurrentValue = $this->Id->FormValue;
-		$this->nome->CurrentValue = $this->nome->FormValue;
-		$this->endereco->CurrentValue = $this->endereco->FormValue;
-		$this->telefone->CurrentValue = $this->telefone->FormValue;
-		$this->celular->CurrentValue = $this->celular->FormValue;
-		$this->estado->CurrentValue = $this->estado->FormValue;
-		$this->cidade->CurrentValue = $this->cidade->FormValue;
+		$this->userlevelid->CurrentValue = $this->userlevelid->FormValue;
+		$this->userlevelname->CurrentValue = $this->userlevelname->FormValue;
 	}
 
 	// Load row based on key values
@@ -535,26 +511,21 @@ class chospitais_edit extends chospitais {
 		// Call Row Selected event
 		$row = &$rs->fields;
 		$this->Row_Selected($row);
-		$this->Id->setDbValue($rs->fields('Id'));
-		$this->nome->setDbValue($rs->fields('nome'));
-		$this->endereco->setDbValue($rs->fields('endereco'));
-		$this->telefone->setDbValue($rs->fields('telefone'));
-		$this->celular->setDbValue($rs->fields('celular'));
-		$this->estado->setDbValue($rs->fields('estado'));
-		$this->cidade->setDbValue($rs->fields('cidade'));
+		$this->userlevelid->setDbValue($rs->fields('userlevelid'));
+		if (is_null($this->userlevelid->CurrentValue)) {
+			$this->userlevelid->CurrentValue = 0;
+		} else {
+			$this->userlevelid->CurrentValue = intval($this->userlevelid->CurrentValue);
+		}
+		$this->userlevelname->setDbValue($rs->fields('userlevelname'));
 	}
 
 	// Load DbValue from recordset
 	function LoadDbValues(&$rs) {
 		if (!$rs || !is_array($rs) && $rs->EOF) return;
 		$row = is_array($rs) ? $rs : $rs->fields;
-		$this->Id->DbValue = $row['Id'];
-		$this->nome->DbValue = $row['nome'];
-		$this->endereco->DbValue = $row['endereco'];
-		$this->telefone->DbValue = $row['telefone'];
-		$this->celular->DbValue = $row['celular'];
-		$this->estado->DbValue = $row['estado'];
-		$this->cidade->DbValue = $row['cidade'];
+		$this->userlevelid->DbValue = $row['userlevelid'];
+		$this->userlevelname->DbValue = $row['userlevelname'];
 	}
 
 	// Render row values based on field settings
@@ -567,144 +538,51 @@ class chospitais_edit extends chospitais {
 		$this->Row_Rendering();
 
 		// Common render codes for all row types
-		// Id
-		// nome
-		// endereco
-		// telefone
-		// celular
-		// estado
-		// cidade
+		// userlevelid
+		// userlevelname
 
 		if ($this->RowType == EW_ROWTYPE_VIEW) { // View row
 
-		// Id
-		$this->Id->ViewValue = $this->Id->CurrentValue;
-		$this->Id->ViewCustomAttributes = "";
+		// userlevelid
+		$this->userlevelid->ViewValue = $this->userlevelid->CurrentValue;
+		$this->userlevelid->ViewCustomAttributes = "";
 
-		// nome
-		$this->nome->ViewValue = $this->nome->CurrentValue;
-		$this->nome->ViewCustomAttributes = "";
+		// userlevelname
+		$this->userlevelname->ViewValue = $this->userlevelname->CurrentValue;
+		if ($Security->GetUserLevelName($this->userlevelid->CurrentValue) <> "") $this->userlevelname->ViewValue = $Security->GetUserLevelName($this->userlevelid->CurrentValue);
+		$this->userlevelname->ViewCustomAttributes = "";
 
-		// endereco
-		$this->endereco->ViewValue = $this->endereco->CurrentValue;
-		$this->endereco->ViewCustomAttributes = "";
+			// userlevelid
+			$this->userlevelid->LinkCustomAttributes = "";
+			$this->userlevelid->HrefValue = "";
+			$this->userlevelid->TooltipValue = "";
 
-		// telefone
-		$this->telefone->ViewValue = $this->telefone->CurrentValue;
-		$this->telefone->ViewCustomAttributes = "";
-
-		// celular
-		$this->celular->ViewValue = $this->celular->CurrentValue;
-		$this->celular->ViewCustomAttributes = "";
-
-		// estado
-		$this->estado->ViewValue = $this->estado->CurrentValue;
-		$this->estado->ViewCustomAttributes = "";
-
-		// cidade
-		$this->cidade->ViewValue = $this->cidade->CurrentValue;
-		$this->cidade->ViewCustomAttributes = "";
-
-			// Id
-			$this->Id->LinkCustomAttributes = "";
-			$this->Id->HrefValue = "";
-			$this->Id->TooltipValue = "";
-
-			// nome
-			$this->nome->LinkCustomAttributes = "";
-			$this->nome->HrefValue = "";
-			$this->nome->TooltipValue = "";
-
-			// endereco
-			$this->endereco->LinkCustomAttributes = "";
-			$this->endereco->HrefValue = "";
-			$this->endereco->TooltipValue = "";
-
-			// telefone
-			$this->telefone->LinkCustomAttributes = "";
-			$this->telefone->HrefValue = "";
-			$this->telefone->TooltipValue = "";
-
-			// celular
-			$this->celular->LinkCustomAttributes = "";
-			$this->celular->HrefValue = "";
-			$this->celular->TooltipValue = "";
-
-			// estado
-			$this->estado->LinkCustomAttributes = "";
-			$this->estado->HrefValue = "";
-			$this->estado->TooltipValue = "";
-
-			// cidade
-			$this->cidade->LinkCustomAttributes = "";
-			$this->cidade->HrefValue = "";
-			$this->cidade->TooltipValue = "";
+			// userlevelname
+			$this->userlevelname->LinkCustomAttributes = "";
+			$this->userlevelname->HrefValue = "";
+			$this->userlevelname->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
 
-			// Id
-			$this->Id->EditAttrs["class"] = "form-control";
-			$this->Id->EditCustomAttributes = "";
-			$this->Id->EditValue = $this->Id->CurrentValue;
-			$this->Id->ViewCustomAttributes = "";
+			// userlevelid
+			$this->userlevelid->EditAttrs["class"] = "form-control";
+			$this->userlevelid->EditCustomAttributes = "";
+			$this->userlevelid->EditValue = $this->userlevelid->CurrentValue;
+			$this->userlevelid->ViewCustomAttributes = "";
 
-			// nome
-			$this->nome->EditAttrs["class"] = "form-control";
-			$this->nome->EditCustomAttributes = "";
-			$this->nome->EditValue = ew_HtmlEncode($this->nome->CurrentValue);
-			$this->nome->PlaceHolder = ew_RemoveHtml($this->nome->FldCaption());
-
-			// endereco
-			$this->endereco->EditAttrs["class"] = "form-control";
-			$this->endereco->EditCustomAttributes = "";
-			$this->endereco->EditValue = ew_HtmlEncode($this->endereco->CurrentValue);
-			$this->endereco->PlaceHolder = ew_RemoveHtml($this->endereco->FldCaption());
-
-			// telefone
-			$this->telefone->EditAttrs["class"] = "form-control";
-			$this->telefone->EditCustomAttributes = "";
-			$this->telefone->EditValue = ew_HtmlEncode($this->telefone->CurrentValue);
-			$this->telefone->PlaceHolder = ew_RemoveHtml($this->telefone->FldCaption());
-
-			// celular
-			$this->celular->EditAttrs["class"] = "form-control";
-			$this->celular->EditCustomAttributes = "";
-			$this->celular->EditValue = ew_HtmlEncode($this->celular->CurrentValue);
-			$this->celular->PlaceHolder = ew_RemoveHtml($this->celular->FldCaption());
-
-			// estado
-			$this->estado->EditAttrs["class"] = "form-control";
-			$this->estado->EditCustomAttributes = "";
-			$this->estado->EditValue = ew_HtmlEncode($this->estado->CurrentValue);
-			$this->estado->PlaceHolder = ew_RemoveHtml($this->estado->FldCaption());
-
-			// cidade
-			$this->cidade->EditAttrs["class"] = "form-control";
-			$this->cidade->EditCustomAttributes = "";
-			$this->cidade->EditValue = ew_HtmlEncode($this->cidade->CurrentValue);
-			$this->cidade->PlaceHolder = ew_RemoveHtml($this->cidade->FldCaption());
+			// userlevelname
+			$this->userlevelname->EditAttrs["class"] = "form-control";
+			$this->userlevelname->EditCustomAttributes = "";
+			$this->userlevelname->EditValue = ew_HtmlEncode($this->userlevelname->CurrentValue);
+			if (in_array($this->userlevelid->CurrentValue, array(-2,-1,0))) $this->userlevelname->ReadOnly = TRUE;
+			$this->userlevelname->PlaceHolder = ew_RemoveHtml($this->userlevelname->FldCaption());
 
 			// Edit refer script
-			// Id
+			// userlevelid
 
-			$this->Id->HrefValue = "";
+			$this->userlevelid->HrefValue = "";
 
-			// nome
-			$this->nome->HrefValue = "";
-
-			// endereco
-			$this->endereco->HrefValue = "";
-
-			// telefone
-			$this->telefone->HrefValue = "";
-
-			// celular
-			$this->celular->HrefValue = "";
-
-			// estado
-			$this->estado->HrefValue = "";
-
-			// cidade
-			$this->cidade->HrefValue = "";
+			// userlevelname
+			$this->userlevelname->HrefValue = "";
 		}
 		if ($this->RowType == EW_ROWTYPE_ADD ||
 			$this->RowType == EW_ROWTYPE_EDIT ||
@@ -727,6 +605,15 @@ class chospitais_edit extends chospitais {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
+		if (!$this->userlevelid->FldIsDetailKey && !is_null($this->userlevelid->FormValue) && $this->userlevelid->FormValue == "") {
+			ew_AddMessage($gsFormError, str_replace("%s", $this->userlevelid->FldCaption(), $this->userlevelid->ReqErrMsg));
+		}
+		if (!ew_CheckInteger($this->userlevelid->FormValue)) {
+			ew_AddMessage($gsFormError, $this->userlevelid->FldErrMsg());
+		}
+		if (!$this->userlevelname->FldIsDetailKey && !is_null($this->userlevelname->FormValue) && $this->userlevelname->FormValue == "") {
+			ew_AddMessage($gsFormError, str_replace("%s", $this->userlevelname->FldCaption(), $this->userlevelname->ReqErrMsg));
+		}
 
 		// Return validate result
 		$ValidateForm = ($gsFormError == "");
@@ -763,23 +650,10 @@ class chospitais_edit extends chospitais {
 			$this->LoadDbValues($rsold);
 			$rsnew = array();
 
-			// nome
-			$this->nome->SetDbValueDef($rsnew, $this->nome->CurrentValue, NULL, $this->nome->ReadOnly);
+			// userlevelid
+			// userlevelname
 
-			// endereco
-			$this->endereco->SetDbValueDef($rsnew, $this->endereco->CurrentValue, NULL, $this->endereco->ReadOnly);
-
-			// telefone
-			$this->telefone->SetDbValueDef($rsnew, $this->telefone->CurrentValue, NULL, $this->telefone->ReadOnly);
-
-			// celular
-			$this->celular->SetDbValueDef($rsnew, $this->celular->CurrentValue, NULL, $this->celular->ReadOnly);
-
-			// estado
-			$this->estado->SetDbValueDef($rsnew, $this->estado->CurrentValue, NULL, $this->estado->ReadOnly);
-
-			// cidade
-			$this->cidade->SetDbValueDef($rsnew, $this->cidade->CurrentValue, NULL, $this->cidade->ReadOnly);
+			$this->userlevelname->SetDbValueDef($rsnew, $this->userlevelname->CurrentValue, "", $this->userlevelname->ReadOnly);
 
 			// Call Row Updating event
 			$bUpdateRow = $this->Row_Updating($rsold, $rsnew);
@@ -818,7 +692,7 @@ class chospitais_edit extends chospitais {
 		global $Breadcrumb, $Language;
 		$Breadcrumb = new cBreadcrumb();
 		$url = substr(ew_CurrentUrl(), strrpos(ew_CurrentUrl(), "/")+1);
-		$Breadcrumb->Add("list", $this->TableVar, "hospitaislist.php", "", $this->TableVar, TRUE);
+		$Breadcrumb->Add("list", $this->TableVar, "userlevelslist.php", "", $this->TableVar, TRUE);
 		$PageId = "edit";
 		$Breadcrumb->Add("edit", $PageId, $url);
 	}
@@ -895,29 +769,29 @@ class chospitais_edit extends chospitais {
 <?php
 
 // Create page object
-if (!isset($hospitais_edit)) $hospitais_edit = new chospitais_edit();
+if (!isset($userlevels_edit)) $userlevels_edit = new cuserlevels_edit();
 
 // Page init
-$hospitais_edit->Page_Init();
+$userlevels_edit->Page_Init();
 
 // Page main
-$hospitais_edit->Page_Main();
+$userlevels_edit->Page_Main();
 
 // Global Page Rendering event (in userfn*.php)
 Page_Rendering();
 
 // Page Rendering event
-$hospitais_edit->Page_Render();
+$userlevels_edit->Page_Render();
 ?>
 <?php include_once "header.php" ?>
 <script type="text/javascript">
 
 // Form object
 var CurrentPageID = EW_PAGE_ID = "edit";
-var CurrentForm = fhospitaisedit = new ew_Form("fhospitaisedit", "edit");
+var CurrentForm = fuserlevelsedit = new ew_Form("fuserlevelsedit", "edit");
 
 // Validate form
-fhospitaisedit.Validate = function() {
+fuserlevelsedit.Validate = function() {
 	if (!this.ValidateRequired)
 		return true; // Ignore validation
 	var $ = jQuery, fobj = this.GetForm(), $fobj = $(fobj);
@@ -931,6 +805,35 @@ fhospitaisedit.Validate = function() {
 	for (var i = startcnt; i <= rowcnt; i++) {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
+			elm = this.GetElements("x" + infix + "_userlevelid");
+			if (elm && !ew_IsHidden(elm) && !ew_HasValue(elm))
+				return this.OnError(elm, "<?php echo ew_JsEncode2(str_replace("%s", $userlevels->userlevelid->FldCaption(), $userlevels->userlevelid->ReqErrMsg)) ?>");
+			elm = this.GetElements("x" + infix + "_userlevelid");
+			if (elm && !ew_CheckInteger(elm.value))
+				return this.OnError(elm, "<?php echo ew_JsEncode2($userlevels->userlevelid->FldErrMsg()) ?>");
+			elm = this.GetElements("x" + infix + "_userlevelname");
+			if (elm && !ew_IsHidden(elm) && !ew_HasValue(elm))
+				return this.OnError(elm, "<?php echo ew_JsEncode2(str_replace("%s", $userlevels->userlevelname->FldCaption(), $userlevels->userlevelname->ReqErrMsg)) ?>");
+			var elId = fobj.elements["x" + infix + "_userlevelid"];
+			var elName = fobj.elements["x" + infix + "_userlevelname"];
+			if (elId && elName) {
+				elId.value = $.trim(elId.value);
+				elName.value = $.trim(elName.value);
+				if (elId && !ew_CheckInteger(elId.value))
+					return this.OnError(elId, ewLanguage.Phrase("UserLevelIDInteger"));
+				var level = parseInt(elId.value, 10);
+				if (level == 0 && !ew_SameText(elName.value, "Default")) {
+					return this.OnError(elName, ewLanguage.Phrase("UserLevelDefaultName"));
+				} else if (level == -1 && !ew_SameText(elName.value, "Administrator")) {
+					return this.OnError(elName, ewLanguage.Phrase("UserLevelAdministratorName"));
+				} else if (level == -2 && !ew_SameText(elName.value, "Anonymous")) {
+					return this.OnError(elName, ewLanguage.Phrase("UserLevelAnonymousName"));
+				} else if (level < -2) {
+					return this.OnError(elId, ewLanguage.Phrase("UserLevelIDIncorrect"));
+				} else if (level > 0 && ew_InArray(elName.value.toLowerCase(), ["anonymous", "administrator", "default"]) > -1) {
+					return this.OnError(elName, ewLanguage.Phrase("UserLevelNameIncorrect"));
+				}
+			}
 
 			// Fire Form_CustomValidate event
 			if (!this.Form_CustomValidate(fobj))
@@ -949,7 +852,7 @@ fhospitaisedit.Validate = function() {
 }
 
 // Form_CustomValidate event
-fhospitaisedit.Form_CustomValidate = 
+fuserlevelsedit.Form_CustomValidate = 
  function(fobj) { // DO NOT CHANGE THIS LINE!
 
  	// Your custom validation code here, return false if invalid. 
@@ -958,9 +861,9 @@ fhospitaisedit.Form_CustomValidate =
 
 // Use JavaScript validation or not
 <?php if (EW_CLIENT_VALIDATE) { ?>
-fhospitaisedit.ValidateRequired = true;
+fuserlevelsedit.ValidateRequired = true;
 <?php } else { ?>
-fhospitaisedit.ValidateRequired = false; 
+fuserlevelsedit.ValidateRequired = false; 
 <?php } ?>
 
 // Dynamic selection lists
@@ -976,102 +879,52 @@ fhospitaisedit.ValidateRequired = false;
 <?php echo $Language->SelectionForm(); ?>
 <div class="clearfix"></div>
 </div>
-<?php $hospitais_edit->ShowPageHeader(); ?>
+<?php $userlevels_edit->ShowPageHeader(); ?>
 <?php
-$hospitais_edit->ShowMessage();
+$userlevels_edit->ShowMessage();
 ?>
-<form name="fhospitaisedit" id="fhospitaisedit" class="<?php echo $hospitais_edit->FormClassName ?>" action="<?php echo ew_CurrentPage() ?>" method="post">
-<?php if ($hospitais_edit->CheckToken) { ?>
-<input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $hospitais_edit->Token ?>">
+<form name="fuserlevelsedit" id="fuserlevelsedit" class="<?php echo $userlevels_edit->FormClassName ?>" action="<?php echo ew_CurrentPage() ?>" method="post">
+<?php if ($userlevels_edit->CheckToken) { ?>
+<input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $userlevels_edit->Token ?>">
 <?php } ?>
-<input type="hidden" name="t" value="hospitais">
+<input type="hidden" name="t" value="userlevels">
 <input type="hidden" name="a_edit" id="a_edit" value="U">
 <div>
-<?php if ($hospitais->Id->Visible) { // Id ?>
-	<div id="r_Id" class="form-group">
-		<label id="elh_hospitais_Id" class="col-sm-2 control-label ewLabel"><?php echo $hospitais->Id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $hospitais->Id->CellAttributes() ?>>
-<span id="el_hospitais_Id">
-<span<?php echo $hospitais->Id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $hospitais->Id->EditValue ?></p></span>
+<?php if ($userlevels->userlevelid->Visible) { // userlevelid ?>
+	<div id="r_userlevelid" class="form-group">
+		<label id="elh_userlevels_userlevelid" for="x_userlevelid" class="col-sm-2 control-label ewLabel"><?php echo $userlevels->userlevelid->FldCaption() ?><?php echo $Language->Phrase("FieldRequiredIndicator") ?></label>
+		<div class="col-sm-10"><div<?php echo $userlevels->userlevelid->CellAttributes() ?>>
+<span id="el_userlevels_userlevelid">
+<span<?php echo $userlevels->userlevelid->ViewAttributes() ?>>
+<p class="form-control-static"><?php echo $userlevels->userlevelid->EditValue ?></p></span>
 </span>
-<input type="hidden" data-table="hospitais" data-field="x_Id" name="x_Id" id="x_Id" value="<?php echo ew_HtmlEncode($hospitais->Id->CurrentValue) ?>">
-<?php echo $hospitais->Id->CustomMsg ?></div></div>
+<input type="hidden" data-table="userlevels" data-field="x_userlevelid" name="x_userlevelid" id="x_userlevelid" value="<?php echo ew_HtmlEncode($userlevels->userlevelid->CurrentValue) ?>">
+<?php echo $userlevels->userlevelid->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
-<?php if ($hospitais->nome->Visible) { // nome ?>
-	<div id="r_nome" class="form-group">
-		<label id="elh_hospitais_nome" for="x_nome" class="col-sm-2 control-label ewLabel"><?php echo $hospitais->nome->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $hospitais->nome->CellAttributes() ?>>
-<span id="el_hospitais_nome">
-<input type="text" data-table="hospitais" data-field="x_nome" name="x_nome" id="x_nome" size="30" maxlength="100" placeholder="<?php echo ew_HtmlEncode($hospitais->nome->getPlaceHolder()) ?>" value="<?php echo $hospitais->nome->EditValue ?>"<?php echo $hospitais->nome->EditAttributes() ?>>
+<?php if ($userlevels->userlevelname->Visible) { // userlevelname ?>
+	<div id="r_userlevelname" class="form-group">
+		<label id="elh_userlevels_userlevelname" for="x_userlevelname" class="col-sm-2 control-label ewLabel"><?php echo $userlevels->userlevelname->FldCaption() ?><?php echo $Language->Phrase("FieldRequiredIndicator") ?></label>
+		<div class="col-sm-10"><div<?php echo $userlevels->userlevelname->CellAttributes() ?>>
+<span id="el_userlevels_userlevelname">
+<input type="text" data-table="userlevels" data-field="x_userlevelname" name="x_userlevelname" id="x_userlevelname" size="30" maxlength="255" placeholder="<?php echo ew_HtmlEncode($userlevels->userlevelname->getPlaceHolder()) ?>" value="<?php echo $userlevels->userlevelname->EditValue ?>"<?php echo $userlevels->userlevelname->EditAttributes() ?>>
 </span>
-<?php echo $hospitais->nome->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($hospitais->endereco->Visible) { // endereco ?>
-	<div id="r_endereco" class="form-group">
-		<label id="elh_hospitais_endereco" for="x_endereco" class="col-sm-2 control-label ewLabel"><?php echo $hospitais->endereco->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $hospitais->endereco->CellAttributes() ?>>
-<span id="el_hospitais_endereco">
-<input type="text" data-table="hospitais" data-field="x_endereco" name="x_endereco" id="x_endereco" size="30" maxlength="100" placeholder="<?php echo ew_HtmlEncode($hospitais->endereco->getPlaceHolder()) ?>" value="<?php echo $hospitais->endereco->EditValue ?>"<?php echo $hospitais->endereco->EditAttributes() ?>>
-</span>
-<?php echo $hospitais->endereco->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($hospitais->telefone->Visible) { // telefone ?>
-	<div id="r_telefone" class="form-group">
-		<label id="elh_hospitais_telefone" for="x_telefone" class="col-sm-2 control-label ewLabel"><?php echo $hospitais->telefone->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $hospitais->telefone->CellAttributes() ?>>
-<span id="el_hospitais_telefone">
-<input type="text" data-table="hospitais" data-field="x_telefone" name="x_telefone" id="x_telefone" size="30" maxlength="50" placeholder="<?php echo ew_HtmlEncode($hospitais->telefone->getPlaceHolder()) ?>" value="<?php echo $hospitais->telefone->EditValue ?>"<?php echo $hospitais->telefone->EditAttributes() ?>>
-</span>
-<?php echo $hospitais->telefone->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($hospitais->celular->Visible) { // celular ?>
-	<div id="r_celular" class="form-group">
-		<label id="elh_hospitais_celular" for="x_celular" class="col-sm-2 control-label ewLabel"><?php echo $hospitais->celular->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $hospitais->celular->CellAttributes() ?>>
-<span id="el_hospitais_celular">
-<input type="text" data-table="hospitais" data-field="x_celular" name="x_celular" id="x_celular" size="30" maxlength="50" placeholder="<?php echo ew_HtmlEncode($hospitais->celular->getPlaceHolder()) ?>" value="<?php echo $hospitais->celular->EditValue ?>"<?php echo $hospitais->celular->EditAttributes() ?>>
-</span>
-<?php echo $hospitais->celular->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($hospitais->estado->Visible) { // estado ?>
-	<div id="r_estado" class="form-group">
-		<label id="elh_hospitais_estado" for="x_estado" class="col-sm-2 control-label ewLabel"><?php echo $hospitais->estado->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $hospitais->estado->CellAttributes() ?>>
-<span id="el_hospitais_estado">
-<input type="text" data-table="hospitais" data-field="x_estado" name="x_estado" id="x_estado" size="30" maxlength="30" placeholder="<?php echo ew_HtmlEncode($hospitais->estado->getPlaceHolder()) ?>" value="<?php echo $hospitais->estado->EditValue ?>"<?php echo $hospitais->estado->EditAttributes() ?>>
-</span>
-<?php echo $hospitais->estado->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($hospitais->cidade->Visible) { // cidade ?>
-	<div id="r_cidade" class="form-group">
-		<label id="elh_hospitais_cidade" for="x_cidade" class="col-sm-2 control-label ewLabel"><?php echo $hospitais->cidade->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $hospitais->cidade->CellAttributes() ?>>
-<span id="el_hospitais_cidade">
-<input type="text" data-table="hospitais" data-field="x_cidade" name="x_cidade" id="x_cidade" size="30" maxlength="50" placeholder="<?php echo ew_HtmlEncode($hospitais->cidade->getPlaceHolder()) ?>" value="<?php echo $hospitais->cidade->EditValue ?>"<?php echo $hospitais->cidade->EditAttributes() ?>>
-</span>
-<?php echo $hospitais->cidade->CustomMsg ?></div></div>
+<?php echo $userlevels->userlevelname->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
 </div>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">
 <button class="btn btn-primary ewButton" name="btnAction" id="btnAction" type="submit"><?php echo $Language->Phrase("SaveBtn") ?></button>
-<button class="btn btn-default ewButton" name="btnCancel" id="btnCancel" type="button" data-href="<?php echo $hospitais_edit->getReturnUrl() ?>"><?php echo $Language->Phrase("CancelBtn") ?></button>
+<button class="btn btn-default ewButton" name="btnCancel" id="btnCancel" type="button" data-href="<?php echo $userlevels_edit->getReturnUrl() ?>"><?php echo $Language->Phrase("CancelBtn") ?></button>
 	</div>
 </div>
 </form>
 <script type="text/javascript">
-fhospitaisedit.Init();
+fuserlevelsedit.Init();
 </script>
 <?php
-$hospitais_edit->ShowPageFooter();
+$userlevels_edit->ShowPageFooter();
 if (EW_DEBUG_ENABLED)
 	echo ew_DebugMsg();
 ?>
@@ -1083,5 +936,5 @@ if (EW_DEBUG_ENABLED)
 </script>
 <?php include_once "footer.php" ?>
 <?php
-$hospitais_edit->Page_Terminate();
+$userlevels_edit->Page_Terminate();
 ?>

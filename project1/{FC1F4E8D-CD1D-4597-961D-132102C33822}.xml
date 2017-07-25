@@ -1,6 +1,11 @@
 <?xml version="1.0"?>
+<<<<<<< HEAD
 <configuration date="2017/07/19" author="gerd">
 <project id="{FC1F4E8D-CD1D-4597-961D-132102C33822}" file="" name="project1" product="gerd" version="12.0" datetime="2017/07/19 09:05:19" languagefolder="phplang" userlevel="-2,&quot;Anonymous&quot;,0;0,&quot;Default&quot;,0">
+=======
+<configuration date="2017/07/19" author="e.World Technology Ltd.">
+<project id="{FC1F4E8D-CD1D-4597-961D-132102C33822}" file="" name="project1" product="PHPMaker" version="12.0" datetime="2017/07/19 10:40:02" languagefolder="phplang" userlevel="-2,&quot;Anonymous&quot;,0;0,&quot;Default&quot;,0">
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 <table id="dadores_de_sangre" name="dadores_de_sangre" caption="dadores de sangre" userlevel="-2,&quot;Anonymous&quot;,0;0,&quot;Default&quot;,0" priv="1"/>
 <table id="donacoes_sangre" name="donacoes_sangre" caption="donacoes sangre" userlevel="-2,&quot;Anonymous&quot;,0;0,&quot;Default&quot;,0" priv="1"/>
 <table id="hospitais" name="hospitais" caption="hospitais" userlevel="-2,&quot;Anonymous&quot;,0;0,&quot;Default&quot;,0" priv="1"/>

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<<<<<<< HEAD
 <ew-language date="2017/7/25" version="12.0.0" id="es" name="Spanish_MX_v9" desc="Español_v9_Mexico" author="lutgardo@lut.mx">
+=======
+<ew-language date="2017/7/19" version="12.0.0" id="es" name="Spanish_MX_v9" desc="Español_v9_Mexico" author="lutgardo@lut.mx">
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 	<locale>
 		<phrase id="locale" value=""/><!-- *** setting locale here will override the project locale setting *** -->
 		<phrase id="use_system_locale" value="0"/>
@@ -421,7 +425,11 @@
 </menu>
 <menu id="2"><phrase id="menutext" value="donacoes sangre"/>
 </menu>
+<<<<<<< HEAD
 <menu id="3"><phrase id="menutext" value="Hospitales"/>
+=======
+<menu id="3"><phrase id="menutext" value="hospitais"/>
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 </menu>
 <menu id="4"><phrase id="menutext" value="membership grouppermissions"/>
 </menu>
@@ -433,9 +441,15 @@
 </menu>
 <menu id="8"><phrase id="menutext" value="membership users"/>
 </menu>
+<<<<<<< HEAD
 <menu id="9"><phrase id="menutext" value="PERMISOS"/>
 </menu>
 <menu id="10"><phrase id="menutext" value="ROLES"/>
+=======
+<menu id="9"><phrase id="menutext" value="userlevelpermissions"/>
+</menu>
+<menu id="10"><phrase id="menutext" value="userlevels"/>
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 </menu>
 <table id="dadores_de_sangre"><phrase id="tblcaption" value="dadores de sangre"/>
 <field id="id"><phrase id="fldcaption" value="Id"/>
@@ -567,6 +581,7 @@
 <field id="groupid"><phrase id="fldcaption" value="group ID"/>
 </field>
 </table>
+<<<<<<< HEAD
 <table id="membership_users"><phrase id="tblcaption" value="USUARIOS"/>
 <field id="memberid"><phrase id="fldcaption" value="ID"/>
 </field>
@@ -609,6 +624,50 @@
 <field id="userlevelid"><phrase id="fldcaption" value="ROL ID"/>
 </field>
 <field id="userlevelname"><phrase id="fldcaption" value="NOMBRE ROL"/>
+=======
+<table id="membership_users"><phrase id="tblcaption" value="membership users"/>
+<field id="memberid"><phrase id="fldcaption" value="member ID"/>
+</field>
+<field id="passmd5"><phrase id="fldcaption" value="pass MD5"/>
+</field>
+<field id="_email"><phrase id="fldcaption" value="email"/>
+</field>
+<field id="signupdate"><phrase id="fldcaption" value="signup Date"/>
+</field>
+<field id="groupid"><phrase id="fldcaption" value="group ID"/>
+</field>
+<field id="isbanned"><phrase id="fldcaption" value="is Banned"/>
+</field>
+<field id="isapproved"><phrase id="fldcaption" value="is Approved"/>
+</field>
+<field id="custom1"><phrase id="fldcaption" value="custom 1"/>
+</field>
+<field id="custom2"><phrase id="fldcaption" value="custom 2"/>
+</field>
+<field id="custom3"><phrase id="fldcaption" value="custom 3"/>
+</field>
+<field id="custom4"><phrase id="fldcaption" value="custom 4"/>
+</field>
+<field id="comments"><phrase id="fldcaption" value="comments"/>
+</field>
+<field id="pass_reset_key"><phrase id="fldcaption" value="pass reset key"/>
+</field>
+<field id="pass_reset_expiry"><phrase id="fldcaption" value="pass reset expiry"/>
+</field>
+</table>
+<table id="userlevelpermissions"><phrase id="tblcaption" value="userlevelpermissions"/>
+<field id="userlevelid"><phrase id="fldcaption" value="userlevelid"/>
+</field>
+<field id="_tablename"><phrase id="fldcaption" value="tablename"/>
+</field>
+<field id="permission"><phrase id="fldcaption" value="permission"/>
+</field>
+</table>
+<table id="userlevels"><phrase id="tblcaption" value="userlevels"/>
+<field id="userlevelid"><phrase id="fldcaption" value="userlevelid"/>
+</field>
+<field id="userlevelname"><phrase id="fldcaption" value="userlevelname"/>
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 </field>
 </table>
 </project>

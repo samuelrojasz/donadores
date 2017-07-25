@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<<<<<<< HEAD
 <ew-language date="2017/7/25" version="12.0.0" id="pt" name="Portuguese" desc="Brazilian Portuguese" author="e.World Technology Ltd.">
+=======
+<ew-language date="2017/7/19" version="12.0.0" id="pt" name="Portuguese" desc="Brazilian Portuguese" author="e.World Technology Ltd.">
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 	<locale>
 		<phrase id="locale" value=""/><!-- *** ajustar as configurações locais aqui irá substituir as configurações locais do projeto *** -->
 		<phrase id="use_system_locale" value="1"/>
@@ -388,9 +392,15 @@
 </menu>
 <menu id="8"><phrase id="menutext" value="membership users"/>
 </menu>
+<<<<<<< HEAD
 <menu id="9"><phrase id="menutext" value="PERMISOS"/>
 </menu>
 <menu id="10"><phrase id="menutext" value="ROLES"/>
+=======
+<menu id="9"><phrase id="menutext" value="userlevelpermissions"/>
+</menu>
+<menu id="10"><phrase id="menutext" value="userlevels"/>
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 </menu>
 <table id="dadores_de_sangre"><phrase id="tblcaption" value="dadores de sangre"/>
 <field id="id"><phrase id="fldcaption" value="Id"/>
@@ -522,7 +532,11 @@
 <field id="groupid"><phrase id="fldcaption" value="group ID"/>
 </field>
 </table>
+<<<<<<< HEAD
 <table id="membership_users"><phrase id="tblcaption" value="USUARIOS"/>
+=======
+<table id="membership_users"><phrase id="tblcaption" value="membership users"/>
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 <field id="memberid"><phrase id="fldcaption" value="member ID"/>
 </field>
 <field id="passmd5"><phrase id="fldcaption" value="pass MD5"/>
@@ -552,7 +566,11 @@
 <field id="pass_reset_expiry"><phrase id="fldcaption" value="pass reset expiry"/>
 </field>
 </table>
+<<<<<<< HEAD
 <table id="userlevelpermissions"><phrase id="tblcaption" value="PERMISOS"/>
+=======
+<table id="userlevelpermissions"><phrase id="tblcaption" value="userlevelpermissions"/>
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 <field id="userlevelid"><phrase id="fldcaption" value="userlevelid"/>
 </field>
 <field id="_tablename"><phrase id="fldcaption" value="tablename"/>
@@ -560,7 +578,11 @@
 <field id="permission"><phrase id="fldcaption" value="permission"/>
 </field>
 </table>
+<<<<<<< HEAD
 <table id="userlevels"><phrase id="tblcaption" value="ROLES"/>
+=======
+<table id="userlevels"><phrase id="tblcaption" value="userlevels"/>
+>>>>>>> 01cd2d760bc517d78003601698aa8e1eb1c58a9e
 <field id="userlevelid"><phrase id="fldcaption" value="userlevelid"/>
 </field>
 <field id="userlevelname"><phrase id="fldcaption" value="userlevelname"/>
